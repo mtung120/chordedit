@@ -31,16 +31,14 @@ pure CSS `@media`; no server-side device sniffing.
 | Wide touch | `min-width: 768px` + `orientation: landscape` + `pointer: coarse` | foldables / tablets in landscape: the desktop layout with 44px targets, paged Perform |
 
 The Home Screen app gets the same layout as Safari, with no separate
-version (a bottom header bar for it was tried and dropped as more trouble
-than it saved). It still differs from Safari in ways that matter:
+version (a dedicated layout for it caused more trouble than it saved). It
+still differs from Safari in ways that matter:
 - **No Safari bars.** `viewport-fit=cover` + `black-translucent`: pages run
   under the status bar; `body` pads by `env(safe-area-inset-*)` (0 on
-  wide touch screens' song page). Since an iOS update in late October
-  2026, iOS keeps a foldable iPhone's side status bar strip out of the Home Screen
-  app's viewport in landscape (measured: 867pt wide, inset 0; the Oct 27
-  build ran full width before the update and is narrow after it), so
-  lyrics stop short of it there; Safari uses the full width. A web page
-  can't claim that strip.
+  wide touch screens' song page). In landscape, iOS (since late 2026)
+  keeps a foldable iPhone's side status bar strip out of the Home Screen
+  app's viewport (867pt wide, inset 0), so lyrics stop short of it there
+  while Safari uses the full width. A web page can't claim that strip.
 - **Dead top strip.** After a tap on the status bar's Wi-Fi / battery menu,
   iOS keeps catching taps across the top strip until the next rotation, so
   the header row's tabs can stop responding until you rotate (Safari's tab
@@ -213,7 +211,8 @@ mode and is created on the first save.
   Edit's ⋮ … tabs; mode panels below it), 44px controls everywhere; Edit /
   Practice scroll in 2 columns with Perform's 40px gap and line-height 1.4.
 - Screen wake lock while a song is open.
-- **Guitar Pro tabs**: backend routes and data only (`tab.go`); no UI.
+- **Guitar Pro tabs**: backend routes and data only (`tab.go`); no UI (a
+  viewer would need a renderer such as alphaTab, which isn't bundled).
 
 ### Logo and Home Screen app
 
@@ -370,15 +369,15 @@ npm run dev                 # Vite on :5173, proxies /music + /static to :8080
 go test ./...               # Go unit tests (handlers/*_test.go)
 npm run typecheck           # tsc on src/ + tests/
 npm run test:unit           # Vitest (src/**/*.test.ts)
-npm run test:e2e            # Playwright functional (186 tests)
-npm run test:visual         # Playwright visual, 4 viewports (80 tests)
+npm run test:e2e            # Playwright functional
+npm run test:visual         # Playwright visual, 4 viewports
 npm run test:all            # all Playwright projects
 ./deploy.sh [--backup|--rollback]  # gates → build → your server (DEPLOYMENT.md)
 ./server.sh status          # server health (also logs/restart/backup/provision)
 ```
 Stop any local Go server before Playwright — the harness spawns its own
 per-worker servers — and `npm run build` first: Playwright loads the built
-bundle, not `src/`. Details in `README.md`.
+bundle, not `src/`. Test counts, the harness and CI are in `README.md`.
 
 ## Known issues & backlog
 
@@ -401,12 +400,13 @@ bundle, not `src/`. Details in `README.md`.
    `validVideoID` (audio paths ignore unsafe IDs, but they land in meta).
 
 **Code health:**
-- `songView.ts` (~990 lines) and `videoPlayer/videoPlayer.ts` (~1,460) are
+- `songView.ts` (~1,050 lines) and `videoPlayer/videoPlayer.ts` (~1,460) are
   the big files; the chord dialog and paragraph editor could move out of
   `songView.ts`.
 - Some same-scope group-rule + per-selector override pairs remain in
   `styles.css`.
-- CI's visual job is `continue-on-error` (macOS baselines vs Linux runner).
+- CI's visual step is `continue-on-error` (baselines are macOS, CI is
+  Linux); committing Linux baselines would make it a real gate.
 
 **Decided against — don't re-propose without new information:**
 - In-browser practice video recording (iOS MediaRecorder was poor; a
@@ -424,9 +424,12 @@ bundle, not `src/`. Details in `README.md`.
 
 `main.go` (~100 lines) is the route table; `handlers.Init()` loads the
 YouTube API key and the in-memory stores. `handlers/` has 26 source files
-+ 15 `_test.go` files.
++ 16 `_test.go` files.
 
 **Infrastructure**
+- `init.go` — `Init()`: startup in order (`.env` first, then the stores).
+  `dotenv.go` — reads the gitignored `.env` (`KEY=VALUE`; real env vars
+  win).
 - `middleware.go` — `GetOnly`, `PostOnly`, `DeleteOnly`, `GetHead`,
   `GetPost`. Every route uses one; handlers never check `r.Method`.
 - `atomic.go` — `atomicWriteFile()` (temp + fsync + rename).
@@ -560,35 +563,29 @@ touch block.
 - `deploy.sh` ships only the binary, `static/` and `templates/`; anything
   else ChordEdit needs on the server (units, Caddy site, env template)
   goes in `deploy/`; `deploy/setup-server.sh` installs it.
-- `.claude/` is gitignored.
+- No song content in git: songs live in `SONGS_DIR`; tests use the
+  made-up songs in `tests/fixtures/`. Secrets live in `.env` (dev),
+  `/etc/chordedit/env` (server) and `deploy.env` (deploy settings), all
+  outside git.
 - Scripts in `deploy/` and the root `*.sh` must be committed as `100755`.
 
-## Deployment (summary — full guide in `DEPLOYMENT.md`)
+## Deployment
 
-- **Shape:** Caddy (HTTPS, automatic certs) → the Go binary on
-  `127.0.0.1:8080` under systemd `chordedit.service` (user `chordedit`,
-  `Restart=always`, `EnvironmentFile=/etc/chordedit/env`,
-  `WorkingDirectory=/opt/chordedit/current`). Data in
-  `/var/data/chordedit/songs`.
-- **Settings:** `deploy.env` (gitignored, from `deploy.env.example`):
-  `CHORDEDIT_HOST` (ssh destination), optional `CHORDEDIT_ADMIN_HOST`
-  (sudo, for provisioning), `CHORDEDIT_DOMAIN`.
-- **Provisioning:** `./server.sh provision` copies `deploy/` and runs
-  `setup-server.sh` (idempotent): packages (ffmpeg, Node 20+, Caddy), the
-  `chordedit` user and dirs, the Python venv (yt-dlp + Demucs, CPU-only
-  torch, pinned for Python 3.14) with the model in `TORCH_HOME`, systemd
-  units, the Caddy site for the domain, and a sudoers rule letting the
-  deploy user restart the app and start a backup.
-- **Timers:** `chordedit-backup.timer` nightly tar (no audio) to
-  `/var/backups/chordedit` (14 kept); `ytdlp-update.timer` upgrades
-  yt-dlp daily.
-- `deploy.sh`: optional `--backup` → `go test` → `npm ci` → typecheck →
-  Vitest → `NODE_ENV=production npm run build` → cross-compile → rsync
-  binary + `static/` + `templates/` to `/opt/chordedit/releases/vTS` →
-  flip `current` symlink → restart → health check (auto-revert on fail).
-  `--rollback` switches to the previous release. Ships an explicit file
-  list, not the working tree.
-- `server.sh`: `status | logs [svc] | restart | backup | provision | ssh`.
+`DEPLOYMENT.md` is the full guide (server, domain, provisioning, deploys,
+backups, troubleshooting). What matters while coding:
+- Production is Caddy (HTTPS) → the Go binary on `127.0.0.1:8080` under
+  systemd, `WorkingDirectory` = the release dir, config from
+  `/etc/chordedit/env` (`PORT`, `SONGS_DIR`, `CHORDEDIT_PYTHON`,
+  `TORCH_HOME`, `YOUTUBE_API_KEY`). The service can write only
+  `/var/data/chordedit`, so runtime files go under `SONGS_DIR`.
+- `deploy.sh` runs Go tests + typecheck + Vitest (not Playwright), builds,
+  and ships only the binary, `static/` and `templates/`; a health check on
+  `/music/songs` auto-reverts a bad release. `server.sh` covers status,
+  logs, restart, backup and provisioning. Both read `deploy.env`.
+- Anything else the server needs (units, Caddy site, env template,
+  Python requirements) goes in `deploy/`, installed by
+  `deploy/setup-server.sh` (idempotent; rerun with `./server.sh
+  provision`).
 
 ### Known operational gaps
 

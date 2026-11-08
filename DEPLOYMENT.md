@@ -149,7 +149,7 @@ The newest 5 releases are kept.
 ```
 
 Expect every unit `active`, "App on :8080: 200", a cert expiry date and
-`https://<domain>/music/songs: 200`. Then open `https://<domain>/` in a
+`https://<domain>/music/songs: 200` (401 once there's a password). Then open `https://<domain>/` in a
 browser: an empty library with a "Search or add a song" field. Add a
 blank song to check saving works.
 
@@ -166,8 +166,10 @@ ssh -t deploy@chords.example.com caddy hash-password   # type a password, copy t
 Uncomment the `basic_auth` block in `deploy/chordedit.caddy`, paste the
 hash, pick a username, then `./server.sh provision` (or edit
 `/etc/caddy/sites/chordedit.caddy` on the server and
-`sudo systemctl reload caddy`). Browsers and the iOS Home Screen app ask
-once and remember it.
+`sudo systemctl reload caddy`). Browsers ask once and remember it; check
+the iOS Home Screen app on a device, since iOS web apps can be forgetful
+about saved site passwords. With a password, add `-u user:password` to
+the `curl` commands below.
 
 ## Operations
 
@@ -267,9 +269,8 @@ in the gitignored `deploy.env` locally.
 5. If there's a YouTube key: write it into `/etc/chordedit/env` with the
    human (`sudoedit`); never echo it into logs or the repo.
 6. `./deploy.sh` ends with "✅ Deployed v…".
-7. `./server.sh status` shows all units active and both checks at 200;
-   `curl -sI https://<domain>/music/songs` returns 200 (401 with a
-   password).
+7. `./server.sh status` shows all units active, the app check at 200 and
+   the HTTPS check at 200 (401 with a password).
 8. If the human wants a password: the `basic_auth` steps above, then
    step 7 again.
 9. Tell the human the URL, that nightly backups run on the server, and

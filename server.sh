@@ -32,7 +32,8 @@ status)
     echo | openssl s_client -connect "$DOMAIN:443" -servername "$DOMAIN" 2>/dev/null \
         | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || echo "n/a"
     printf "── https://%s/music/songs: " "$DOMAIN"
-    curl -fsS -o /dev/null -w "%{http_code}\n" --max-time 10 "https://$DOMAIN/music/songs" || echo FAIL
+    # No -f: 401 (behind basic_auth) is a healthy answer too.
+    curl -sS -o /dev/null -w "%{http_code}\n" --max-time 10 "https://$DOMAIN/music/songs" || echo FAIL
     ;;
 logs)
     case "${2:-chordedit}" in

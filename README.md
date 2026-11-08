@@ -55,15 +55,17 @@ keeps every song, setlist and setting as files in `SONGS_DIR`
 (`/var/data/chordedit/songs` in production, `./songs/` by default in
 dev, gitignored), so the library survives deploys and is backed up on its
 own. The test suite brings its own made-up songs (`tests/fixtures/`).
-A dev checkout starts with an empty library. To pull songs from a running server:
-`./download-songs.sh ./songs https://<your domain>/music`.
+A dev checkout starts with an empty library; to pull songs from a running
+server: `./download-songs.sh ./songs https://<your domain>/music`.
+
 Optional env vars: `YOUTUBE_API_KEY` (video search), `SONGS_DIR`, `PORT`.
 The server also reads them from a gitignored `.env` in the repo root
 (`KEY=VALUE` lines; real env vars win). DEPLOYMENT.md says how to get a
 YouTube API key.
 
-YouTube audio download and stem separation need a Python venv, plus
-`ffmpeg` and `node` on the PATH:
+YouTube audio download and stem separation need a Python venv (Python
+3.14, which the pinned torch / Demucs versions in `deploy/requirements.txt`
+were verified with), plus `ffmpeg` and `node` on the PATH:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r deploy/requirements.txt
@@ -102,12 +104,12 @@ the server. Ops details in `DEPLOYMENT.md`.
 | `npm run test:unit` | Vitest (`src/**/*.test.ts`) | 39 |
 | `npm run test:e2e` | Playwright functional (`tests/specs/`) | 186 |
 | `npm run test:visual` | Playwright visual, mobile/tablet/laptop/desktop | 4 × 20 |
-| `npm run test:all` | all Playwright projects | 264 |
+| `npm run test:all` | all Playwright projects | 266 |
 | `npm run test:debug` | Playwright UI mode | |
 
-> Playwright tests load the **built**
-> bundle from `static/dist/`, so run `npm run build` after changing `src/`
-> or the tests will exercise stale JavaScript.
+> Playwright tests load the **built** bundle from `static/dist/`, so run
+> `npm run build` after changing `src/` or the tests will exercise stale
+> JavaScript.
 
 `deploy.sh` gates on Go tests + typecheck + Vitest only; Playwright is too
 slow for the deploy gate, so run it locally before risky changes.
