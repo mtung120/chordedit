@@ -1,0 +1,6262 @@
+/* =============================================================================
+   CHORDEDIT STYLES
+   Structure:
+     1. SHARED PREAMBLE — design tokens, typography, font imports, and
+        every rule whose properties apply identically on both mobile and
+        desktop (chord chips, tag chips, section-header pills, dialog
+        backdrops, etc.).
+     2. @media (max-width: 767.98px) — mobile surface.
+     3. @media (min-width: 768px)    — desktop surface.
+     4. @media (min-width: 768px) and (orientation: landscape) and
+        (pointer: coarse) — wide touch screens (landscape foldables /
+        tablets): on top of the desktop block, 44px targets, paged
+        Perform; ends with the Home Screen app's bottom bar.
+   The design system these rules follow is written down in CLAUDE.md
+   ("Design system"); keep the two in step.
+
+   The two @media blocks are siblings, not "base + overrides". Each is
+   self-contained for its viewport; there's no cross-viewport cascade.
+   That's the whole point of the split — it eliminates the mobile-base-
+   leaking-into-desktop failure mode that caused earlier spacing bugs.
+   Edit one block without worrying about the other.
+   ============================================================================= */
+
+/* =============================================================================
+   FONTS & IMPORTS
+   =============================================================================
+   ChordEdit uses two fonts. Each has a clear role and should NOT be used
+   outside its lane:
+
+     1. Inter                    — UI chrome: body, buttons, menus,
+                                   labels, dialogs, form inputs, the
+                                   logo's name, the song title in the
+                                   top bar
+     2. Lexend (via --song-font) — song content: lyrics, chord chip
+                                   letters/digits, section headers,
+                                   anything rendered inside .content
+
+   Conventions:
+     - Default to `font-family: inherit` so children pick up the correct
+       font from their ancestor (body=Inter, .content=Lexend). Only
+       declare an explicit family when overriding the inherited one.
+     - `.chord .chord-accidental` is a documented exception: ♯/♭ glyphs
+       use system-ui because Lexend's accidentals are too spread out.
+     - Code-like text may use monospace (the song page's Raw text
+       editor). That's a fourth "utility" font role, used sparingly.
+   ============================================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap');
+
+:root {
+    --song-font: 'Lexend', sans-serif;
+}
+
+/* =============================================================================
+   DESIGN TOKENS — zinc neutrals only: #18181B text / primary, #52525B
+   secondary, #71717A quiet text, #D4D4D8 handles, #E4E4E7 borders,
+   #F4F4F5 fills / tracks / hairlines, #FFFFFF ground. Chord text #C81E1E
+   on a #F4F4F5 chip. (Full list: CLAUDE.md → Design system.)
+   ============================================================================= */
+
+/* =============================================================================
+   SITE HEADER - MOBILE
+   ============================================================================= */
+/* The logo is the chord-over-line symbol (a red chip above a lyric line
+   on a dark tile, same art as the app icon and favicon); the name
+   "ChordEdit" sits beside it on the home page only. */
+
+/* =============================================================================
+   SONG CONTENT DISPLAY - MOBILE
+   ============================================================================= */
+
+/* Action buttons - minimal clean style matching New Song button */
+.action-button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.song-title {
+    text-align: left;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E4E4E7;
+}
+
+/* Mobile-optimized single column song view */
+#songView {
+    box-sizing: border-box;
+}
+
+/* =============================================================================
+   INTERACTIVE ELEMENTS - MOBILE
+   ============================================================================= */
+
+.clickable-word:hover, .clickable-space:hover {
+    border-radius: 2px;
+}
+
+/* Full-screen overlay that blocks accidental taps while inline text editing */
+.inline-edit-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 499;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* =============================================================================
+   CHORDS - MOBILE
+   ============================================================================= */
+
+.chord.clickable:active {
+    background-color: #E4E4E7;
+}
+
+/* =============================================================================
+   SECTION HEADERS
+   ============================================================================= */
+
+.section-header.clickable {
+    cursor: pointer;
+}
+
+.section-header.clickable:hover {
+    opacity: 0.7;
+}
+
+/* Freshly opened chord dialog on desktop: the second click of a double-click
+   reaches the word underneath (songView.createChordDialog). */
+.chord-dialog.click-through,
+.chord-dialog-backdrop.click-through {
+    pointer-events: none;
+}
+
+/* Section palette (Edit): tap a chip, then a paragraph. Look only — each
+   viewport block sizes and places the bar. */
+.section-palette {
+    display: none;
+    background-color: #FFFFFF;
+}
+
+body[data-mode="edit"] .section-palette {
+    display: flex;
+}
+
+body[data-mode="edit"]:has(.raw-text-editor:not([hidden])) .section-palette {
+    display: none;
+}
+
+/* One row of equal columns: as an intrinsically sized grid, every 1fr
+   column grows to the widest label, so short ones (Rap) are as easy to
+   hit. */
+.section-chips {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    width: max-content;
+    flex: 0 0 auto; /* the bar scrolls instead of squeezing the columns */
+}
+
+.section-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: #3F3F46;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.12s;
+}
+
+/* The visible pill; the chip itself is the (taller) touch target. */
+.section-chip::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    border: 1px solid #D4D4D8;
+    border-radius: 999px;
+    background-color: #FFFFFF;
+    transition: background-color 0.12s, border-color 0.12s;
+}
+
+/* Picked: dark, with a bar under the label that runs out as the pick
+   times out (sectionPalette.ts PICK_TIMEOUT_MS; restarts on scroll). */
+.section-chip.picked {
+    color: #FFFFFF;
+}
+
+.section-chip.picked::before {
+    background-color: #18181B;
+    border-color: #18181B;
+}
+
+.section-chip.picked::after {
+    content: "";
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    border-radius: 1px;
+    background-color: rgba(255, 255, 255, 0.7);
+    transform-origin: left;
+    animation: section-pick-timeout 3s linear forwards;
+}
+
+@keyframes section-pick-timeout {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+/* While a chip is picked, every paragraph is a target. */
+body.section-picking #songView .song-paragraph {
+    outline: 1px dashed #A1A1AA;
+    outline-offset: 3px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+@media (hover: hover) {
+    body.section-picking #songView .song-paragraph:hover {
+        outline: 2px dashed #2563EB;
+        background-color: rgba(37, 99, 235, 0.06);
+    }
+}
+
+/* Visual feedback while long-press hold is building */
+.song-paragraph.long-press-active {
+    background-color: rgba(52, 152, 219, 0.12);
+    border-radius: 3px;
+    transition: background-color 0.15s ease;
+}
+
+/* Prevent iOS native text-selection during long-press in chord-edit mode */
+body.mode-edit .song-paragraph {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* =============================================================================
+   CHORD DIALOG (Edit: tap a chord or a word)
+   Look only — each viewport block places and sizes it: a bottom sheet on
+   phones, a centred dialog on wider screens, like the add-song preview.
+   The choices look like the chips they insert.
+   ============================================================================= */
+
+.chord-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(24, 24, 27, 0.45);
+}
+
+.chord-dialog {
+    position: fixed;
+    z-index: 1001;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: #FFFFFF;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+    color: #18181B;
+}
+
+.chord-dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chord-dialog-title-wrap {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.chord-dialog-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.chord-dialog-current,
+.chord-option {
+    background: #F4F4F5;
+    color: #C81E1E;
+    font-family: var(--song-font);
+    font-weight: 500;
+}
+
+.chord-dialog-current {
+    padding: 0 0.3em;
+    border-radius: 4px;
+    font-size: 18px;
+    line-height: 1.4;
+}
+
+.chord-dialog .chord-accidental {
+    font-family: system-ui, sans-serif;
+}
+
+.chord-dialog-close {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #F4F4F5;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chord-dialog-close svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #18181B;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+
+/* "Change every C in the song" and a switch (Practice's metronome switch). */
+.chord-replace-all {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chord-replace-all input {
+    position: relative;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 22px;
+    margin: 0;
+    border-radius: 11px;
+    background: #D4D4D8;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: background-color 0.2s;
+}
+
+.chord-replace-all input::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.chord-replace-all input:checked {
+    background: #18181B;
+}
+
+.chord-replace-all input:checked::after {
+    transform: translateX(14px);
+}
+
+.chord-replace-all input:focus-visible {
+    outline: 2px solid #18181B;
+    outline-offset: 2px;
+}
+
+.chord-section-label {
+    color: #71717A;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+.chord-dialog-section {
+    display: grid;
+}
+
+.chord-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 8px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.12s;
+}
+
+.chord-option:active {
+    background: #E4E4E7;
+}
+
+.chord-dialog-custom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    border-top: 1px solid #F4F4F5;
+}
+
+/* Filled field, like the library's search fields. */
+.chord-custom-input {
+    flex: 1 1 120px;
+    box-sizing: border-box;
+    min-width: 0;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: #F4F4F5;
+    color: #18181B;
+    font-family: inherit;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.chord-custom-input::placeholder {
+    color: #71717A;
+}
+
+.chord-custom-input:focus {
+    border-color: #71717A;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06);
+}
+
+/* The dialog's one primary button. */
+.chord-custom-add {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #18181B;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chord-custom-add:active:not(:disabled) {
+    background: #3F3F46;
+}
+
+.chord-custom-add:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* Red text, like Delete song in the ⋮ menu. */
+.chord-delete-button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #DC2626;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* =============================================================================
+   PLAY INSTRUCTIONS — mobile
+   =============================================================================
+   Inline performance directions ([[drum fills]] etc.). Italic + bold + muted
+   gray — no border, no background — so it sits inline with lyrics at the
+   same font size but is visually distinct from both lyrics and chords. */
+
+/* Play-instructions are display-only (no click handler in the JS). To
+   add/edit/remove one, the user double-clicks the paragraph and types
+   `[[text]]` directly into the inline raw-text editor. */
+
+/* =============================================================================
+   TAG EDITOR (song page) — MOBILE
+   ============================================================================= */
+
+.add-tag-select {
+    -webkit-appearance: none;
+    max-width: 130px;
+}
+
+/* =============================================================================
+   METRONOME WIDGET
+   ============================================================================= */
+
+/* =============================================================================
+   YOUTUBE PLAYER WIDGET (song view) — mobile
+   ============================================================================= */
+
+.yt-search-input {
+    -webkit-appearance: none;
+}
+
+.yt-search-btn {
+    flex-shrink: 0;
+}
+
+/* Search / Upload: the setup's primary action, dark like ▶. */
+.vp-btn.yt-search-btn,
+.vp-btn.vp-upload-btn {
+    padding: 0 16px;
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+.vp-btn.yt-search-btn:active,
+.vp-btn.yt-search-btn:hover:not(:disabled),
+.vp-btn.vp-upload-btn:active,
+.vp-btn.vp-upload-btn:hover:not(:disabled) {
+    background: #3F3F46;
+    color: #FFFFFF;
+}
+
+.yt-result-item {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.yt-result-item:active {
+    background: #F4F4F5;
+}
+
+/* =============================================================================
+   SONG PAGE HEADER — top bar, mode switcher, Display bar, mode panels
+   (visuals only; sizes and spacing live in the viewport blocks)
+   ============================================================================= */
+
+/* The hidden attribute wins over any display value a rule sets. */
+[hidden] {
+    display: none !important;
+}
+.song-top-bar {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.song-top-bar .song-title {
+    font-weight: 700;
+    margin: 0;
+    padding: 0;
+    border-bottom: none;
+}
+
+/* Hidden-by-default elements (both viewports) */
+#raw-content,
+#hacSearchResults,
+#hacVersionPicker {
+    display: none;
+}
+
+/* Mode switcher: Edit / Practice / Perform — quiet text tabs on the title
+   row; the active one is dark with a short underline. */
+.mode-switch-btn {
+    position: relative;
+    border: none;
+    background: none;
+    color: #71717A;
+    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mode-switch-btn:hover {
+    color: #52525B;
+}
+
+.mode-switch-btn[aria-selected="true"] {
+    color: #18181B;
+}
+
+.mode-switch-btn[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 16px;
+    height: 2px;
+    margin-left: -8px;
+    border-radius: 1px;
+    background: #18181B;
+}
+
+/* Only the active mode's panel shows (songMode.ts sets body[data-mode]). */
+.mode-panel {
+    display: none;
+}
+
+body[data-mode="edit"] .mode-panel[data-mode-panel="edit"],
+body[data-mode="practice"] .mode-panel[data-mode-panel="practice"] {
+    display: block;
+}
+
+/* The inactive Practice panel stays rendered at zero height (not
+   display:none) so the YouTube iframe inside keeps initialising normally. */
+body:not([data-mode="practice"]) .mode-panel[data-mode-panel="practice"] {
+    display: block;
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* "90 BPM · 4/4" — Perform only. Desktop shows it beside the title, phones
+   after the Display controls (see the viewport blocks). */
+.tempo-summary {
+    display: none;
+    color: #71717A;
+    white-space: nowrap;
+}
+
+/* Display bar: version, font size and transpose, always shown. Quiet text
+   like the mode tabs — no boxes or pills. */
+.display-divider {
+    width: 1px;
+    background: #E4E4E7;
+}
+
+/* Setlist navigation in the Display bar: quiet grey text like the other
+   controls; sizes are per viewport. */
+.setlist-nav:not([hidden]) {
+    display: flex;
+    align-items: center;
+}
+
+.setlist-nav-name {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px 0 0;
+    color: #71717A;
+    font-size: 13px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.setlist-nav-name .setlist-nav-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.setlist-nav-name .setlist-nav-pos {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.setlist-nav .action-button {
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: #71717A;
+}
+
+.setlist-nav .action-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.setlist-nav .action-button[aria-disabled="true"] {
+    color: #D4D4D8;
+    pointer-events: none;
+}
+
+/* Perform hides the version picker (and the divider after it) unless the
+   song has several versions; versionSelector sets data-many once loaded.
+   Edit and Practice always show it, for + New. */
+body[data-mode="perform"] .version-selector:not([data-many]),
+body[data-mode="perform"] .version-selector:not([data-many]) + .display-divider {
+    display: none;
+}
+
+/* Inter has no ♭ / ♯ glyphs; use the same system font as chord accidentals. */
+.display-row .action-button[data-action^="transpose"] {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.version-selector,
+.version-picker {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.version-picker-btn {
+    gap: 5px;
+}
+
+.version-picker-label {
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Key menu between ♭ and ♯ (keySelector.ts): "Key G ▾" opens the 12 keys
+   in a 4 × 3 grid, each over its relative minor, the current one dark. */
+.key-picker {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.key-picker-btn {
+    gap: 5px;
+}
+
+.key-picker-name {
+    min-width: 1.4em; /* G → A♭ doesn't shift ♯ much */
+    color: #18181B;
+    font-weight: 600;
+    text-align: left;
+}
+
+.key-picker-btn:disabled {
+    cursor: default;
+}
+
+.key-picker .popover-menu {
+    left: 0;
+    min-width: 0;
+    padding: 10px;
+}
+
+.key-menu-title {
+    margin: 0 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #71717A;
+}
+
+.key-menu-grid {
+    display: grid;
+    gap: 4px;
+}
+
+/* Edit only: the hint under the title and "Wrong key? Set it". */
+body:not([data-mode="edit"]) .key-menu-edit {
+    display: none;
+}
+
+.key-menu-title:has(+ .key-menu-hint) {
+    margin-bottom: 2px;
+}
+
+.key-menu-hint {
+    margin: 0 4px 8px;
+    font-size: 12px;
+    color: #71717A;
+}
+
+.key-menu-footer {
+    display: flex;
+    margin-top: 8px;
+    padding-top: 4px;
+    border-top: 1px solid #F4F4F5;
+}
+
+.key-menu-footer .key-menu-set {
+    flex: 1;
+    justify-content: flex-start;
+}
+
+.key-menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: #18181B;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.key-menu-item:hover,
+.key-menu-item:active {
+    background: #F4F4F5;
+}
+
+.key-menu-item[aria-checked="true"] {
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+.key-menu-major {
+    font-weight: 600;
+    line-height: 1;
+}
+
+.key-menu-minor {
+    font-size: 11px;
+    line-height: 1;
+    color: #71717A;
+}
+
+.key-menu-item[aria-checked="true"] .key-menu-minor {
+    color: #D4D4D8;
+}
+
+/* Dropdown menus (version picker, Edit ⋮) — see src/utils/popover.ts */
+.popover-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    padding: 4px;
+    background: #FFFFFF;
+    border: 1px solid #E4E4E7;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.version-picker .popover-menu {
+    left: 0;
+}
+
+/* Edit-mode ⋮ menu (Raw text, Tags…, Rename, Delete) — inline at the end
+   of the Display bar. The menu anchors to this group and opens rightwards. */
+.edit-actions {
+    display: none;
+    position: relative;
+}
+
+body[data-mode="edit"] .edit-actions {
+    display: flex;
+    align-items: center;
+}
+
+.edit-actions .popover-menu {
+    left: 0;
+}
+
+/* ⋮ stands out from the quiet grey Display controls: dark dots on a filled
+   32px chip (a ::before layer, so the touch target can stay 44px), dark
+   while the menu is open. */
+.edit-actions .edit-menu-btn {
+    position: relative;
+    color: #18181B;
+}
+
+.edit-actions .edit-menu-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #E4E4E7;
+    transform: translate(-50%, -50%);
+}
+
+.edit-actions .edit-menu-btn svg {
+    position: relative;
+    width: 18px;
+    height: 18px;
+}
+
+/* The chip itself darkens on hover / press, not the whole button. */
+.edit-actions .action-button.edit-menu-btn:hover,
+.edit-actions .action-button.edit-menu-btn:active {
+    background: none;
+    color: #18181B;
+}
+
+.edit-actions .edit-menu-btn:hover::before,
+.edit-actions .edit-menu-btn:active::before {
+    background: #D4D4D8;
+}
+
+.edit-actions .action-button.edit-menu-btn[aria-expanded="true"] {
+    color: #FFFFFF;
+}
+
+.edit-actions .edit-menu-btn[aria-expanded="true"]::before,
+.edit-actions .edit-menu-btn[aria-expanded="true"]:hover::before {
+    background: #18181B;
+}
+
+/* Edit panel only takes space while the tag or raw-text editor is open. */
+body[data-mode="edit"] .mode-panel[data-mode-panel="edit"]:not(:has(> :not([hidden]))) {
+    display: none;
+}
+
+.popover-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: none;
+    color: #18181B;
+    font-family: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.popover-item:hover,
+.popover-item:active {
+    background: #F4F4F5;
+}
+
+.popover-item--secondary {
+    color: #52525B;
+}
+
+/* Divider between the version list and the version actions. */
+.version-item + .popover-item--secondary {
+    border-top: 1px solid #F4F4F5;
+}
+
+.popover-item--danger {
+    color: #DC2626;
+}
+
+.version-item--active::after {
+    content: " ✓";
+    color: #71717A;
+}
+
+.action-button.action-button--primary {
+    background: #18181B;
+    border-color: #18181B;
+    color: #FFFFFF;
+}
+
+/* ─── Media card: mode toggle + upload bar ──────────────────────────────── */
+
+/* Source picker (no audio yet, or Change): "Source [YouTube | Upload mp3]
+   … Cancel", then a filled search field + dark Search, or a filled
+   "Choose an mp3" + dark Upload, then the results as a hairline list. */
+.vp-setup {
+    display: flex;
+    flex-direction: column;
+}
+
+.vp-setup-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.vp-setup-head .vp-row-label {
+    flex-shrink: 0;
+    width: 72px;
+    margin: 0;
+}
+
+.vp-setup-head .vp-cancel-setup {
+    margin-left: auto;
+}
+
+.vp-upload-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vp-file-pick {
+    display: inline-flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0 14px;
+    border-radius: 8px;
+    background: #F4F4F5;
+    color: #18181B;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.vp-file-pick:hover {
+    background: #E4E4E7;
+}
+
+.vp-file-input:focus-visible + .vp-file-pick {
+    outline: 2px solid #71717A;
+    outline-offset: 2px;
+}
+
+.vp-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vp-btn.vp-upload-btn:disabled {
+    background: #E4E4E7;
+    color: #71717A;
+    cursor: default;
+}
+
+.yt-results {
+    overflow-y: auto;
+    border-top: 1px solid #F4F4F5;
+}
+
+.yt-result-item {
+    border-bottom: 1px solid #F4F4F5;
+}
+
+.yt-result-thumb {
+    border-radius: 6px;
+}
+
+/* ─── Practice panel ───────────────────────────────────────────────────────
+   Quiet small-caps labels; each option set is a segmented control (a zinc
+   track with the selected option raised in white, as in iOS / macOS — equal
+   segments, text only); pitch is a − 0 + stepper of the same shape; the
+   metronome is a switch; ▶ is the one dark control. Each viewport block
+   sets the sizes and the row layout. */
+
+.vp-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Small caps like the lyrics' section headers. */
+.vp-row-label {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #71717A;
+    text-align: left;
+}
+
+/* Quiet text button (Reset, Separate stems, Tap). */
+.vp-btn {
+    position: relative;
+    padding: 0 8px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: #52525B;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, background-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+}
+
+.vp-btn:active {
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+.vp-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.vp-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Segmented control. The track and the selected segment are drawn by
+   ::before layers, so each segment's hit area can be taller than it looks
+   (44px rows on touch screens). */
+.vp-seg {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr; /* equal segments: the widest label sets them */
+    position: relative;
+    isolation: isolate;
+}
+
+.vp-seg::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    border-radius: 9px;
+    background: #F4F4F5;
+}
+
+.vp-seg > button,
+.vp-seg > .ps-display {
+    position: relative;
+    z-index: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    border: 0;
+    background: none;
+    color: #52525B;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s;
+}
+
+.vp-seg > button::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    z-index: -1;
+    border-radius: 7px;
+    transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.vp-seg > button.active {
+    color: #18181B;
+}
+
+.vp-seg > button.active::before {
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
+
+/* A one-segment track (Separate stems) is an action: dark text. */
+.vp-seg > .separate-stems-btn {
+    color: #18181B;
+}
+
+/* No hover / press fill on segments: the raised segment is the state. */
+.vp-seg > .vp-btn:active,
+.vp-seg > .vp-btn:hover:not(:disabled) {
+    background: none;
+    color: #18181B;
+}
+
+.vp-seg > button:active::before {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.vp-seg > button.active:active::before {
+    background: #FFFFFF;
+}
+
+/* ─── Transport: ▶ · −5 · +5 · scrubber · time ───────────────────────────── */
+
+.vp-playback-row {
+    flex-wrap: nowrap;
+}
+
+/* Play is the one dark control — the panel's primary action. */
+.vp-playback-row .yt-play-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+.vp-playback-row .yt-play-btn:active,
+.vp-playback-row .yt-play-btn:hover:not(:disabled) {
+    background: #3F3F46;
+    color: #FFFFFF;
+}
+
+.yt-play-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.vp-playback-row .yt-seek-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.yt-seek-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+/* Thin track, played part dark (--progress, set by videoPlayer.ts). */
+.yt-scrubber {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.yt-scrubber::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, #18181B var(--progress, 0%), #E4E4E7 var(--progress, 0%));
+}
+
+.yt-scrubber::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: #E4E4E7;
+}
+
+.yt-scrubber::-moz-range-progress {
+    height: 4px;
+    border-radius: 2px;
+    background: #18181B;
+}
+
+.yt-scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border: 0;
+    border-radius: 50%;
+    background: #18181B;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.yt-scrubber::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: #18181B;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.yt-scrubber:disabled {
+    cursor: default;
+}
+
+.yt-time {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: #71717A;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ─── Pitch: − 0 + stepper; Reset only while shifted ─────────────────────── */
+
+.ps-controls,
+.stem-selector {
+    flex-wrap: nowrap;
+}
+
+.vp-stepper > .ps-btn {
+    font-size: 17px;
+    font-weight: 400;
+}
+
+.vp-seg > .ps-display {
+    cursor: default;
+    color: #18181B;
+    font-weight: 600;
+}
+
+/* ─── Metronome switch ───────────────────────────────────────────────────── */
+
+.metronome-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.metronome-toggle:active,
+.metronome-toggle:hover:not(:disabled) {
+    background: none;
+}
+
+.vp-switch {
+    position: relative;
+    width: 36px;
+    height: 22px;
+    border-radius: 11px;
+    background: #D4D4D8;
+    transition: background-color 0.2s;
+}
+
+.vp-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.metronome-toggle.active .vp-switch {
+    background: #18181B;
+}
+
+.metronome-toggle.active .vp-switch,
+.metro-switch.active .vp-switch {
+    background: #18181B;
+}
+
+.metronome-toggle.active .vp-switch::after,
+.metro-switch.active .vp-switch::after {
+    transform: translateX(14px);
+}
+
+/* "Speed 85%": the value rides in the label, in the text color. */
+.vp-row-value {
+    color: #18181B;
+    font-variant-numeric: tabular-nums;
+}
+
+.vp-reset {
+    color: #71717A;
+}
+
+/* ─── Metronome: the panel's chip and the sheet it opens ─────────────────── */
+
+.metronome-controls {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/* A filled track like the segmented controls (drawn by ::before, so the
+   hit area can be taller than the track). */
+.metronome-chip {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: #18181B;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.metronome-chip::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    border-radius: 9px;
+    background: #F4F4F5;
+    transition: background-color 0.15s;
+}
+
+.metronome-chip:hover:not(:disabled),
+.metronome-chip:active {
+    background: none;
+    color: #18181B;
+}
+
+.metronome-chip:hover::before,
+.metronome-chip:active::before {
+    background: #E4E4E7;
+}
+
+.metronome-chip-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+.metronome-chip-chevron {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: #71717A;
+}
+
+.metro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    background: rgba(24, 24, 27, 0.32);
+}
+
+.metro-overlay[hidden] {
+    display: none;
+}
+
+.metro-sheet {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow-y: auto;
+    background: #FFFFFF;
+    color: #18181B;
+    outline: none;
+}
+
+.metro-grabber {
+    flex-shrink: 0;
+    align-self: center;
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: #D4D4D8;
+}
+
+.metro-head,
+.metro-live,
+.metro-retap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.metro-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.metro-spacer {
+    flex: 1;
+}
+
+.metro-done {
+    min-height: 44px;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    color: #18181B;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.metro-switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.metro-setup,
+.metro-tuned {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.metro-setup[hidden],
+.metro-tuned[hidden] {
+    display: none;
+}
+
+.metro-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+    color: #71717A;
+}
+
+.metro-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.metro-step-num {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    box-sizing: border-box;
+    border: 1.5px solid #D4D4D8;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.metro-step.current {
+    color: #18181B;
+    font-weight: 500;
+}
+
+.metro-step.current .metro-step-num {
+    border-color: #18181B;
+}
+
+.metro-step.done .metro-step-num {
+    border-color: #18181B;
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+.metro-step.done .metro-step-text {
+    text-decoration: line-through;
+}
+
+/* The tap pad: the sheet's one dark control. */
+.metro-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 150px;
+    border: 0;
+    border-radius: 16px;
+    background: #18181B;
+    color: #FFFFFF;
+    font-family: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.metro-pad:active {
+    background: #3F3F46;
+}
+
+.metro-pad-big {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.metro-pad-sub {
+    font-size: 13px;
+    font-weight: 500;
+    color: #D4D4D8;
+}
+
+.metro-play {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid #E4E4E7;
+    border-radius: 50%;
+    background: #FFFFFF;
+    color: #18181B;
+    cursor: pointer;
+}
+
+.metro-play svg {
+    width: 14px;
+    height: 14px;
+}
+
+.metro-time {
+    font-size: 13px;
+    color: #71717A;
+    font-variant-numeric: tabular-nums;
+}
+
+.metro-beats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.metro-beat {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #E4E4E7;
+}
+
+.metro-beat.first {
+    width: 14px;
+    height: 14px;
+}
+
+.metro-beat.on {
+    background: #18181B;
+}
+
+.metro-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #71717A;
+}
+
+.metro-sig {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metro-sig-seg {
+    display: grid;
+}
+
+.metro-sig-seg > button {
+    min-height: 44px;
+    min-width: 0;
+}
+
+.metro-sig-seg::before {
+    top: 4px;
+    bottom: 4px;
+}
+
+.metro-sig-seg > button::before {
+    top: 6px;
+    bottom: 6px;
+}
+
+.metro-bpm-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+}
+
+.metro-bpm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 110px;
+}
+
+.metro-bpm-value {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.metro-round {
+    width: 52px;
+    height: 52px;
+    border: 0;
+    border-radius: 50%;
+    background: #F4F4F5;
+    color: #18181B;
+    font-family: inherit;
+    font-size: 24px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.metro-round:active {
+    background: #E4E4E7;
+}
+
+.metro-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 13px;
+    color: #52525B;
+}
+
+.metro-nudge-text {
+    margin-right: 6px;
+}
+
+.metro-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: #52525B;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.metro-icon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.metro-icon-btn:active {
+    background: #F4F4F5;
+}
+
+.metro-offset {
+    min-width: 60px;
+    text-align: center;
+    font-weight: 600;
+    color: #18181B;
+    font-variant-numeric: tabular-nums;
+}
+
+.metro-retap {
+    padding-top: 14px;
+    border-top: 1px solid #F4F4F5;
+}
+
+.metro-retap-text {
+    flex: 1;
+    font-size: 13px;
+    color: #71717A;
+}
+
+.metro-outline {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid #E4E4E7;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #18181B;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* ─── Shared status line at the bottom of the Practice panel ─────────────── */
+
+.vp-status {
+    font-size: 13px;
+    color: #71717A;
+    padding: 4px 0;
+}
+
+.vp-status:empty {
+    display: none;
+    padding: 0;
+}
+
+/* Practice panel source line: "Source  <title>   Change" */
+.vp-source-title {
+    color: #18181B;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* A YouTube title opens the video on youtube.com (no embedded player). */
+.vp-source-title[href] {
+    text-decoration: underline;
+    text-decoration-color: #D4D4D8;
+    text-underline-offset: 3px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.vp-source-title[href]:active {
+    text-decoration-color: currentColor;
+}
+
+/* Quiet text button for secondary actions (Change, Cancel). */
+.vp-link-btn {
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: #71717A;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 8px;
+    white-space: nowrap; /* the source title gives way instead */
+    cursor: pointer;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.vp-link-btn:active {
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+/* ── Version selector (shared) ────────────────────────────────────────────── */
+
+.version-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.version-item:hover {
+    background: #F4F4F5;
+}
+
+.version-item--active {
+    background: #F4F4F5;
+}
+
+/* ── Raw text editor (shared) ─────────────────────────────────────────────── */
+
+.raw-text-editor {
+    padding: 8px 0;
+}
+
+.raw-text-area {
+    width: 100%;
+    min-height: 60vh;
+    font-family: var(--song-font, 'Lexend', sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #18181B;
+    border: 1px solid #D4D4D8;
+    border-radius: 6px;
+    padding: 12px;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.raw-text-area:focus {
+    border-color: #A1A1AA;
+    box-shadow: 0 0 0 2px rgba(161, 161, 170, 0.2);
+}
+
+.raw-text-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* =============================================================================
+   LIBRARY PAGES — home (/songs) and setlist: the shared look.
+   The song page's system: Inter, zinc neutrals, quiet small-caps labels,
+   one dark primary action per screen (secondary actions are outlined),
+   rows split by hairlines instead of bordered cards. Each viewport block
+   sets sizes and spacing.
+   ============================================================================= */
+
+.site-header {
+    display: flex;
+    align-items: center;
+    background-color: #FFFFFF;
+}
+
+.song-list-container,
+.setlists-section {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.setlists-section:empty {
+    display: none;
+}
+
+/* ─── Titles ─────────────────────────────────────────────────────────────── */
+
+.song-list-header,
+.setlists-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.song-list-title-group,
+.setlists-section-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+}
+
+.song-list-title,
+.setlists-section-title {
+    margin: 0;
+    color: #18181B;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.song-count,
+.setlists-count {
+    color: #71717A;
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Small caps, like the lyrics' section headers and the Practice labels. */
+.recent-label,
+.setlist-title-prefix {
+    display: block;
+    color: #71717A;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+/* ─── Buttons: dark primary, outlined secondary, red text for delete ───────── */
+
+.new-song-button,
+.setlists-new-btn,
+.setlist-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid #18181B;
+    border-radius: 8px;
+    background: #18181B;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transform: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.new-song-button:active {
+    background: #3F3F46;
+    border-color: #3F3F46;
+    color: #FFFFFF;
+}
+
+.setlists-new-btn,
+.setlist-page .new-song-button.setlist-edit-toggle,
+.setlist-page .new-song-button.setlist-add-song-btn {
+    border-color: #E4E4E7;
+    background: #FFFFFF;
+    color: #18181B;
+}
+
+.setlists-new-btn:active,
+.setlist-page .new-song-button.setlist-edit-toggle:active,
+.setlist-page .new-song-button.setlist-add-song-btn:active {
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+/* Editing a setlist: "Done" is the primary action. */
+.setlist-page .new-song-button.setlist-edit-toggle[aria-pressed="true"] {
+    border-color: #18181B;
+    background: #18181B;
+    color: #FFFFFF;
+}
+.setlist-delete-btn {
+    margin-left: -14px; /* the text, not the press area, on the edge */
+    border-color: transparent;
+    background: transparent;
+    color: #DC2626;
+    font-weight: 500;
+}
+
+.setlist-delete-btn:active {
+    background: #FEF2F2;
+}
+
+/* ─── Fields ─────────────────────────────────────────────────────────────── */
+
+.song-search,
+.song-picker-search,
+.artist-search,
+.yt-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    border: 1px solid #E4E4E7;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    color: #18181B;
+    font-family: inherit;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.song-search::placeholder,
+.song-picker-search::placeholder,
+.artist-search::placeholder,
+.yt-search-input::placeholder {
+    color: #71717A;
+}
+
+.song-search:focus,
+.song-picker-search:focus,
+.artist-search:focus,
+.yt-search-input:focus {
+    border-color: #71717A;
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06);
+}
+
+/* Search fields: filled, with a magnifier, like the iOS search bar. */
+.song-search,
+.song-picker-search,
+.artist-search,
+.yt-search-input {
+    border-color: transparent;
+    background-color: #F4F4F5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717A' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    background-size: 16px 16px;
+    padding-left: 36px;
+}
+
+/* ─── Rows: songs (home, setlist) and setlists (home) ───────────────────────── */
+
+.song-list,
+.setlists-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Rows run a little past the text column (--row-inset) so the hover /
+   press fill has room; the text and the dividers stay on the page's
+   edges. */
+.song-item,
+.setlist-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    color: #18181B;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.12s;
+}
+
+.song-item::after,
+.setlist-row::after {
+    content: "";
+    position: absolute;
+    left: var(--row-inset, 0);
+    right: var(--row-inset, 0);
+    bottom: 0;
+    height: 1px;
+    background: #F4F4F5;
+}
+
+.song-item:last-child::after,
+.setlist-row:last-child::after {
+    content: none;
+}
+
+.song-item:active,
+.setlist-row:active {
+    background-color: #F4F4F5;
+}
+
+.song-number {
+    flex: 0 0 auto;
+    min-width: 20px;
+    color: #71717A;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+/* Title + artists; stacked on phones, one line elsewhere. */
+.song-main {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.song-artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #71717A;
+}
+
+/* iOS Safari's text autosizing (landscape) inflated some rows' titles and
+   not others; library pages use their own sizes. */
+.home-page,
+.setlist-page {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+.song-name,
+.setlist-row-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.song-tags {
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+}
+
+.song-tags:empty {
+    display: none;
+}
+
+.song-tag {
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: #F4F4F5;
+    color: #52525B;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+/* Derived from the song's audio files (Audio, Stems): an icon, not a chip. */
+.song-tag-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: #71717A;
+}
+
+.song-tag-icon svg,
+.tag-filter-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tag-filter-btn svg {
+    margin-right: 4px;
+    vertical-align: -3px;
+}
+
+.setlist-row-meta {
+    flex-shrink: 0;
+    color: #71717A;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.no-songs-container {
+    padding: 40px 0;
+    text-align: center;
+}
+
+.no-songs,
+.setlists-empty {
+    margin: 0;
+    color: #71717A;
+    font-size: 14px;
+}
+
+/* ─── Recently played (song links) and tag filters ───────────────────────── */
+
+.recent-row,
+.tag-filter-bar {
+    display: flex;
+    gap: 6px;
+}
+
+.recent-chip,
+.tag-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+
+/* Songs: filled. */
+.recent-chip {
+    background: #F4F4F5;
+    color: #3F3F46;
+}
+
+.recent-chip:active {
+    background: #E4E4E7;
+}
+
+/* Filters: outlined; the active one dark. */
+.tag-filter-btn {
+    border-color: #E4E4E7;
+    background: #FFFFFF;
+    color: #52525B;
+}
+
+.tag-filter-btn:active {
+    background: #F4F4F5;
+}
+
+.tag-filter-btn.active {
+    border-color: #18181B;
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+/* Artist filter: "Artist ▾" is an outlined filter; once an artist is picked,
+   a dark chip with the name (reopens the picker) and a × (clears). */
+.artist-filter-btn .artist-filter-chevron {
+    width: 14px;
+    height: 14px;
+    margin: 0 0 0 4px;
+}
+
+.artist-filter-chip {
+    display: inline-flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+.artist-filter-name,
+.artist-filter-clear {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.artist-filter-name svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+}
+
+.artist-filter-clear {
+    justify-content: center;
+    color: #D4D4D8;
+}
+
+.artist-filter-clear svg {
+    width: 12px;
+    height: 12px;
+}
+
+.tag-filter-divider {
+    flex-shrink: 0;
+    align-self: center;
+    width: 1px;
+    height: 20px;
+    background: #E4E4E7;
+}
+
+.artist-picker[hidden] {
+    display: none;
+}
+
+.artist-picker-panel {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background: #FFFFFF;
+    color: #18181B;
+}
+
+.artist-picker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.artist-picker-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.artist-picker-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #F4F4F5;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.artist-picker-close svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #18181B;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+
+.artist-list {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.artist-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: #18181B;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.artist-option-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.artist-option[aria-current="true"] .artist-option-name {
+    font-weight: 600;
+}
+
+.artist-option-none .artist-option-name {
+    color: #52525B;
+}
+
+.artist-option-count {
+    color: #71717A;
+    font-variant-numeric: tabular-nums;
+}
+
+.artist-option-check {
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.artist-option-check svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #18181B;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.artist-list-empty {
+    margin: 0;
+    padding: 24px 0;
+    color: #71717A;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* ─── Pagination ─────────────────────────────────────────────────────────── */
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+
+.pagination:empty {
+    display: none;
+}
+
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: #52525B;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.page-btn:active {
+    background: #F4F4F5;
+}
+
+.page-btn.active {
+    background: #18181B;
+    color: #FFFFFF;
+}
+
+.page-btn:disabled {
+    color: #D4D4D8;
+    background: none;
+    cursor: default;
+}
+
+/* ─── Setlist page ───────────────────────────────────────────────────────── */
+
+/* "SETLIST" above the (editable) name. */
+.setlist-editor-container .song-list-title-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.setlist-editor-container .song-list-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* field-sizing: content sizes the input to its value (Safari 17.4+);
+   content-box, or the edit-mode padding eats into the text. */
+.setlist-name-input {
+    box-sizing: content-box;
+    max-width: 100%;
+    min-width: 4ch;
+    width: auto;
+    field-sizing: content;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    outline: none;
+}
+
+/* Editable while editing: a faint field behind the name. */
+.setlist-editor-container.edit-mode .setlist-name-input {
+    margin-left: -6px;
+    padding: 0 6px;
+    background: #F4F4F5;
+}
+
+.setlist-editor-container.edit-mode .setlist-name-input:focus {
+    box-shadow: 0 0 0 2px #71717A;
+}
+
+.setlist-header-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.setlist-save-indicator {
+    color: #71717A;
+    font-size: 13px;
+}
+
+.setlist-save-indicator:empty {
+    display: none;
+}
+
+.setlist-songs-empty {
+    list-style: none;
+}
+
+.song-item.editing {
+    cursor: grab;
+}
+
+.song-item.editing.dragging {
+    opacity: 0.4;
+}
+
+/* Where the dragged row will land. */
+.song-item.editing.drop-over {
+    box-shadow: inset 0 2px 0 #18181B;
+}
+
+.setlist-song-handle {
+    flex-shrink: 0;
+    color: #71717A;
+    font-size: 14px;
+    letter-spacing: -2px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.setlist-song-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: #71717A;
+    font-size: 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.setlist-song-remove:active {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+.setlist-danger-zone {
+    border-top: 1px solid #F4F4F5;
+}
+
+.setlist-editor-container.view-mode .setlist-danger-zone {
+    display: none;
+}
+
+/* Add-song picker. */
+.song-picker-overlay[hidden] {
+    display: none;
+}
+
+.song-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    background: rgba(24, 24, 27, 0.4);
+}
+
+.song-picker-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    background: #FFFFFF;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+}
+
+.song-picker-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #F4F4F5;
+}
+
+.song-picker-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: #52525B;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.song-picker-list {
+    overflow-y: auto;
+}
+
+.song-picker-item {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid #F4F4F5;
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: #18181B;
+    font-family: inherit;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.song-picker-item:active {
+    background: #F4F4F5;
+}
+
+.song-picker-item.already-added {
+    color: #71717A;
+    font-weight: 400;
+}
+
+.song-picker-empty {
+    padding: 24px;
+    color: #71717A;
+    text-align: center;
+}
+
+/* ─── Search or add a song (home; addSong.ts) ────────────────────────────── */
+
+.home-search {
+    position: relative;
+}
+
+.home-search .song-search {
+    padding-right: 44px;
+}
+
+.song-search-clear {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.song-search-clear[hidden] {
+    display: none;
+}
+
+.song-search-clear svg {
+    width: 18px;
+    height: 18px;
+    fill: #A1A1AA;
+    stroke: #FFFFFF;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+/* While searching, only the matches and the add-song rows show. */
+body.home-searching .setlists-section,
+body.home-searching .song-list-header,
+body.home-searching .recent-section,
+body.home-searching .tag-filter-bar {
+    display: none;
+}
+
+.search-label {
+    display: none;
+    color: #71717A;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+body.home-searching .search-label,
+.add-song .search-label {
+    display: block;
+}
+
+body.home-searching .no-songs-container {
+    text-align: left;
+}
+
+.add-song {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #E4E4E7;
+}
+
+.add-song[hidden],
+.hac-section:empty {
+    display: none;
+}
+
+.hac-section,
+.hac-results {
+    display: flex;
+    flex-direction: column;
+}
+
+.add-song-row,
+.hac-result {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: #18181B;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.12s;
+}
+
+.add-song-row:active,
+.hac-result:active {
+    background: #F4F4F5;
+}
+
+.add-song-row:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.hac-result::after {
+    content: "";
+    position: absolute;
+    left: var(--row-inset, 0);
+    right: var(--row-inset, 0);
+    bottom: 0;
+    height: 1px;
+    background: #F4F4F5;
+}
+
+.hac-result:last-child::after {
+    content: none;
+}
+
+.add-song-row-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #F4F4F5;
+}
+
+.add-song-row-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #18181B;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.add-song-row-text,
+.hac-result-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.add-song-row-title,
+.hac-result-title,
+.add-song-row-sub,
+.hac-result-artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.add-song-row-title,
+.hac-result-title {
+    font-weight: 500;
+}
+
+.add-song-row-sub,
+.hac-result-artist {
+    color: #71717A;
+    font-size: 13px;
+}
+
+.add-song-chevron {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #71717A;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hac-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #71717A;
+}
+
+.hac-spinner {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #E4E4E7;
+    border-top-color: #18181B;
+    border-radius: 50%;
+    animation: hac-spin 0.8s linear infinite;
+}
+
+@keyframes hac-spin {
+    to { transform: rotate(360deg); }
+}
+
+.hac-retry {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #18181B;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Preview of a hopamchuan.com song: the whole song, a version switcher,
+   Add. A bottom sheet on phones, a centred dialog on desktop. */
+.add-song-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    background: rgba(24, 24, 27, 0.45);
+}
+
+.add-song-overlay[hidden],
+.add-song-versions[hidden],
+.add-song-note[hidden],
+.add-song-version-label:empty,
+.add-song-status:empty {
+    display: none;
+}
+
+body.add-song-open {
+    overflow: hidden;
+}
+
+.add-song-sheet {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    background: #FFFFFF;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+    color: #18181B;
+}
+
+.add-song-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.add-song-heading {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.add-song-title {
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.add-song-artist {
+    color: #71717A;
+    font-size: 14px;
+}
+
+.add-song-close,
+.add-song-prev,
+.add-song-next {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.add-song-close {
+    border-radius: 50%;
+    background: #F4F4F5;
+}
+
+.add-song-close svg,
+.add-song-prev svg,
+.add-song-next svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #18181B;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.add-song-versions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #F4F4F5;
+}
+
+.add-song-prev,
+.add-song-next {
+    border-radius: 8px;
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.add-song-prev:disabled,
+.add-song-next:disabled {
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.35;
+    cursor: default;
+}
+
+.add-song-version-meta {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 0;
+    text-align: center;
+}
+
+.add-song-version-count {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.add-song-version-label {
+    max-width: 100%;
+    overflow: hidden;
+    color: #71717A;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The song, as the song page shows it (Lexend, chord chips, small-caps
+   section headers), read-only. */
+.add-song-preview {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-top: 1px solid #F4F4F5;
+    font-family: 'Lexend', 'Inter', sans-serif;
+    line-height: 1.5;
+}
+
+.pv-para + .pv-para {
+    margin-top: 1.5em;
+}
+
+.pv-header {
+    margin: 0 0 0.2em;
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+.pv-line {
+    padding-left: 1.2em;
+    text-indent: -1.2em;
+}
+
+.pv-chord {
+    display: inline-block;
+    margin: 0 0.2em 0 0;
+    padding: 0 0.25em;
+    border-radius: 4px;
+    background: #F4F4F5;
+    color: #C81E1E;
+    font-size: 1.12em;
+    font-weight: 500;
+    line-height: 1.3;
+    text-indent: 0;
+    white-space: nowrap;
+}
+
+.pv-chord .chord-accidental {
+    font-family: system-ui, sans-serif;
+}
+
+.add-song-loading {
+    margin: 0;
+    color: #71717A;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+}
+
+.add-song-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #F4F4F5;
+}
+
+.add-song-note,
+.add-song-status {
+    margin: 0;
+    color: #52525B;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.add-song-note b {
+    color: #18181B;
+    font-weight: 600;
+}
+
+.add-song-confirm {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 12px;
+    background: #18181B;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.add-song-confirm:active {
+    background: #3F3F46;
+}
+
+.add-song-confirm:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* =============================================================================
+   MOBILE SURFACE — applied at viewports < 768 px wide.
+   Self-contained: the shared preamble above provides brand atoms + any
+   property that behaves the same on both viewports, and this block
+   provides every property that differs per viewport for mobile. Editing
+   anything here does not affect desktop.
+   ============================================================================= */
+
+@media (max-width: 767.98px) {
+    /* The song page's one left edge, the same as the right one: the
+       logo, Display bar, section palette and paragraphs all start
+       here, in every mode. */
+    :root {
+        --song-gutter: 12px;
+    }
+
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #18181B;
+        background-color: #FFFFFF;
+        margin: 0;
+        /* viewport-fit=cover: keep pages clear of the notch / status bar
+           (all 0 outside the Home Screen web app and notch landscape). */
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                 env(safe-area-inset-bottom) env(safe-area-inset-left);
+        display: flex;
+        flex-direction: column;
+        -webkit-font-smoothing: antialiased;
+    }
+    .site-logo {
+        display: inline-flex;
+        align-items: center;
+        min-width: 44px;
+        min-height: 44px;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .site-logo:active {
+        opacity: 0.7;
+    }
+
+    .site-logo .logo-mark {
+        display: block;
+        width: 30px;
+        height: 30px;
+    }
+
+    /* The home page's name beside the symbol (song and setlist pages have
+       the symbol alone). */
+    .site-logo {
+        gap: 10px;
+        color: #18181B;
+        text-decoration: none;
+    }
+
+    .site-logo .logo-name {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .main-content {
+        padding: 0 0 70px 0;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .content {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: var(--song-font);
+    }
+
+    .song-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        text-align: left;
+        align-items: flex-start;
+        margin-bottom: 0;
+        padding: 12px 0 0 0;
+    }
+
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        background-color: transparent;
+        color: #3F3F46;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid #E4E4E7;
+        border-radius: 6px;
+        transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .action-button:active {
+        background-color: #E4E4E7;
+    }
+
+    .song-title {
+        font-size: 1.5em;
+        font-weight: 600;
+        color: #18181B;
+        margin: 0;
+        line-height: 1.2;
+        cursor: pointer;
+    }
+
+    .song-title:hover {
+        color: #3F3F46;
+    }
+
+    .title-inline-input {
+        font-size: inherit;
+        font-weight: inherit;
+        font-family: inherit;
+        color: #18181B;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid #2563EB;
+        outline: none;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        line-height: inherit;
+    }
+
+    #songView {
+        font-size: 16px; /* fixed: body text should be 16px+ */
+        line-height: 1.4;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+    }
+
+    .song-paragraph {
+        display: block;
+        /* The same box in every mode, so lyrics never shift between
+           Edit / Practice / Perform. Right padding ends lines where the
+           mode tabs' text ends. */
+        padding: 0.25em 12px 0.45em var(--song-gutter);
+        margin-bottom: 0.5em;
+        border-radius: 0;
+        background-color: transparent;
+        border: none;
+        margin-top: 0;
+        white-space: pre-line;
+        cursor: default;
+        transition: background-color 0.15s ease;
+        position: relative;
+    }
+
+    /* One block per lyric line. A long line's wrapped part hangs 1.2em in,
+       so it can't be mistaken for the next line. */
+    .song-line {
+        padding-left: 1.2em;
+        text-indent: -1.2em;
+    }
+
+    /* Inline-block chips would inherit the negative indent. */
+    .song-line > * {
+        text-indent: 0;
+    }
+
+    .song-paragraph:last-child {
+        margin-bottom: 0;
+    }
+
+    .empty-line {
+        height: 0.3em;
+    }
+
+    .empty-line + .song-paragraph:has(> .section-header) {
+        margin-top: 0.2em; /* ~1.5 lines between sections, as on desktop */
+    }
+
+    /* Song files often start with blank lines; don't let them push the
+       first section away from the Display bar. */
+    #songView > .empty-line:first-child {
+        display: none;
+    }
+
+    #songView > .empty-line:first-child + .song-paragraph {
+        margin-top: 4px; /* ≈ the title-to-Display-bar gap above */
+    }
+
+    .clickable-word, .clickable-space {
+        padding: 0.15em 0;
+        border-radius: 2px;
+        transition: background-color 0.1s ease;
+    }
+
+    .clickable-word:hover, .clickable-space:hover {
+        background-color: #dbeafe;
+    }
+
+    .word, .space {
+        cursor: default;
+        padding: 0.15em 0;
+    }
+
+    .clickable-word, .clickable-space, .chord.clickable {
+        pointer-events: none;
+        cursor: default;
+    }
+
+    body.mode-edit .clickable-word, body.mode-edit .clickable-space, body.mode-edit .chord.clickable {
+        pointer-events: auto;
+        cursor: pointer;
+    }
+
+    .inline-para-editor {
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        padding: 0.8em;
+        border: 2px solid #2563eb;
+        border-radius: 4px;
+        outline: none;
+        resize: none;
+        overflow: hidden;
+        background: #f0f7ff;
+        color: #18181B;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .chord {
+        display: inline-block;
+        background-color: #F4F4F5;
+        color: #C81E1E; /* 5.2:1 on the chip; #DC2626 was 4.4 */
+        cursor: default;
+        white-space: nowrap;
+        font-size: 1.12em;
+        font-weight: 500;
+        padding: 0 0.25em;
+        border-radius: 4px;
+        line-height: 1.3;
+        vertical-align: baseline;
+        margin: 0 0.2em 0 0; /* never flush against the next word */
+        font-family: inherit;
+    }
+
+    .chord.clickable {
+        cursor: pointer;
+        transition: background-color 0.12s;
+    }
+
+    .chord .chord-accidental {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    .section-header {
+        display: block;
+        overflow: visible;
+        background: none;
+        color: #18181B;
+        font-size: 0.8em;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0;
+        border-radius: 0;
+        margin: 0 0 0.2em 0;
+        cursor: default;
+    }
+
+    .section-header-name {
+        display: inline;
+        font-weight: 700;
+        color: inherit;
+        text-transform: uppercase;
+    }
+
+    .section-header-playstyle {
+        display: inline;
+        float: right;
+        font-weight: 500;
+        color: #3F3F46;
+        font-style: italic;
+        text-transform: none;
+        font-size: 0.88em;
+        margin-left: 6px;
+        letter-spacing: 0;
+    }
+
+    /* Section palette: one row fixed to the bottom of the screen, in
+       thumb reach, scrolling sideways when the chips don't fit. The lyrics
+       get room below so the bar never covers the last section. */
+    body[data-mode="edit"] .section-palette {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 40; /* under the ⋮ / version popovers (50) */
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px 12px env(safe-area-inset-bottom) var(--song-gutter);
+        border-top: 1px solid #E4E4E7;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    body[data-mode="edit"] .content {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    }
+
+    .section-palette::-webkit-scrollbar {
+        display: none;
+    }
+
+    .section-chips {
+        gap: 6px;
+    }
+
+    .section-chip {
+        min-height: 44px;
+        padding: 0 11px;
+    }
+
+    .section-chip::before {
+        top: 7px;
+        bottom: 7px;
+    }
+
+    .section-chip.picked::after {
+        bottom: 10px;
+    }
+
+    /* Mobile scroll lock during inline editing */
+    body.scroll-locked {
+        position: fixed;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .chord-dialog {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-height: calc(100% - 48px - env(safe-area-inset-top));
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+        border-radius: 16px 16px 0 0;
+    }
+
+    .chord-dialog-header {
+        padding: 12px 12px 4px 20px;
+    }
+
+    .chord-dialog-close {
+        width: 44px;
+        height: 44px;
+    }
+
+    .chord-replace-all {
+        min-height: 48px;
+        margin: 0 20px;
+        font-size: 15px;
+    }
+
+    .chord-section-label {
+        margin: 16px 20px 8px;
+    }
+
+    .chord-dialog-section {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding: 0 20px;
+    }
+
+    .chord-option {
+        min-height: 48px;
+        font-size: 18px;
+    }
+
+    .chord-dialog-custom {
+        gap: 8px;
+        margin-top: 20px;
+        padding: 12px 20px 0;
+    }
+
+    .chord-custom-input,
+    .chord-custom-add {
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .chord-delete-button {
+        flex: 1 0 100%;
+        min-height: 44px;
+        font-size: 16px;
+        text-align: left;
+    }
+
+    .play-instruction {
+        color: #2563EB;
+        font-style: italic;
+        font-weight: 700;
+        margin: 0 2px;
+        white-space: nowrap;
+        cursor: default;
+    }
+
+    .tag-editor {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 0 4px;
+    }
+
+    .tag-editor-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #71717A;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+
+    .tag-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .tag-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        background-color: #18181B;
+        color: #FFFFFF;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .tag-chip-remove {
+        background: none;
+        border: none;
+        color: #A1A1AA;
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        padding: 4px 2px;
+    }
+
+    .add-tag-select {
+        font-size: 13px;
+        font-family: inherit;
+        padding: 4px 8px;
+        border: 1px solid #E4E4E7;
+        border-radius: 12px;
+        background: #FFFFFF;
+        color: #52525B;
+        outline: none;
+    }
+
+.video-player-container {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: relative;
+    }
+
+    .yt-search-bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .vp-upload-bar {
+        min-height: 44px;
+    }
+
+    .yt-search-input {
+        flex: 1;
+        width: auto;
+        height: 44px;
+        font-size: 16px; /* under 16px, iOS zooms the page on focus */
+    }
+
+    .vp-setup {
+        gap: 10px;
+        padding-bottom: 14px;
+    }
+
+    .vp-file-pick,
+    .vp-btn.yt-search-btn,
+    .vp-btn.vp-upload-btn {
+        min-height: 44px;
+        font-size: 15px;
+    }
+
+    /* Segments: 44px hit areas, a 36px track, the raised segment 2px in. */
+    .vp-seg > button,
+    .vp-seg > .ps-display {
+        min-height: 44px;
+        min-width: 48px;
+        padding: 0 12px;
+    }
+
+    .vp-seg::before {
+        top: 4px;
+        bottom: 4px;
+    }
+
+    .vp-seg > button::before {
+        top: 6px;
+        bottom: 6px;
+    }
+
+    .vp-stepper > button,
+    .vp-stepper > .ps-display {
+        min-width: 44px;
+        padding: 0;
+    }
+
+    .yt-results {
+        max-height: 360px;
+    }
+
+    .yt-result-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        cursor: pointer;
+    }
+
+    .yt-result-thumb {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        flex-shrink: 0;
+        background: #E4E4E7;
+    }
+
+    .yt-result-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .yt-result-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: #18181B;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .yt-result-channel {
+        font-size: 12.5px;
+        color: #71717A;
+    }
+
+    .yt-no-results {
+        padding: 10px 12px;
+        color: #71717A;
+        font-size: 13px;
+    }
+
+    .yt-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* Labels above their controls. Two settings a line from 560px (a
+       foldable upright): Stems · Speed, Pitch · Metronome; narrower, Stems
+       and Speed take a line each and Pitch · Metronome share one. Reset
+       sits at the label row's end. */
+    .vp-settings {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        column-gap: 16px;
+        row-gap: 12px;
+        padding-top: 4px;
+    }
+
+    .vp-row-pair {
+        display: contents;
+    }
+
+    .vp-settings .vp-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        row-gap: 4px;
+    }
+
+    .vp-settings .vp-row[hidden] {
+        display: none;
+    }
+
+    .vp-settings .vp-row > * {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .vp-settings .vp-row > .vp-row-label,
+    .vp-settings .vp-row > .vp-row-head {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        line-height: 20px;
+    }
+
+    /* Label, then Reset right after it. */
+    .vp-row-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .vp-row-head .vp-reset {
+        min-height: 20px;
+        min-width: 0;
+        padding: 0 4px;
+    }
+
+    .stem-selector,
+    .speed-selector {
+        grid-column: 1 / -1;
+    }
+
+    .ps-controls .vp-stepper,
+    .stem-selector .vp-seg:has(.separate-stems-btn) {
+        justify-self: start;
+    }
+
+    .metronome-controls {
+        margin-left: -8px; /* the switch starts where the segments do */
+    }
+
+    .metronome-chip {
+        flex: 1;
+        min-height: 44px;
+        padding: 0 12px;
+    }
+
+    .metronome-chip::before {
+        top: 4px;
+        bottom: 4px;
+    }
+
+    @media (min-width: 560px) {
+        .vp-settings {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 24px;
+        }
+
+        .stem-selector,
+        .speed-selector {
+            grid-column: auto;
+        }
+    }
+
+    /* Metronome sheet: a bottom sheet. */
+    .metro-overlay {
+        align-items: flex-end;
+    }
+
+    .metro-sheet {
+        width: 100%;
+        max-height: 92%;
+        border-radius: 16px 16px 0 0;
+        padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+        gap: 16px;
+    }
+
+    .yt-scrubber {
+        min-width: 80px;
+        height: 44px;
+    }
+
+    .yt-scrubber::-webkit-slider-thumb {
+        width: 18px;
+        height: 18px;
+        margin-top: -7px;
+    }
+
+    .yt-scrubber::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Wordmark starts on the song's left edge; tabs end 12px from the right
+       (their text lines up with the lyrics' right edge). */
+    .song-top-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px 0 var(--song-gutter);
+    }
+
+    /* As wide as the symbol (still 44px tall), so the title sits next to it. */
+    .song-top-bar .site-logo {
+        flex-shrink: 0;
+        min-width: 0;
+    }
+
+    .song-top-bar .song-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 1.3em;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .vp-btn {
+        min-height: 44px;
+        min-width: 44px;
+        font-size: 13px;
+    }
+
+    .vp-row {
+        gap: 0;
+        padding: 0;
+    }
+
+    .vp-source-row .vp-row-label {
+        width: 72px;
+    }
+
+    .vp-playback-row {
+        gap: 6px;
+        padding: 4px 0 2px;
+    }
+
+    .vp-playback-row .yt-play-btn {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+    }
+
+    .vp-playback-row .yt-seek-btn {
+        min-width: 40px;
+    }
+
+    .metronome-toggle {
+        min-width: 52px;
+    }
+
+    .vp-source-row {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        min-height: 44px;
+    }
+
+    /* Title + links stay together (no right-floating links). */
+    .vp-source-title {
+        flex: 0 1 auto;
+        min-width: 0;
+        padding: 0 8px;
+        font-size: 13px;
+    }
+
+    .vp-source-row .vp-link-btn {
+        min-height: 44px;
+    }
+
+    .mode-switch {
+        display: flex;
+        flex-shrink: 0;
+        margin-left: auto;
+        margin-right: -6px; /* align the last label's text with the edge */
+    }
+
+    .mode-switch-btn {
+        min-height: 44px;
+        padding: 0 6px;
+        font-size: 13px;
+    }
+
+    .mode-switch-btn[aria-selected="true"]::after {
+        bottom: 7px;
+    }
+
+    .display-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0 10px;
+        width: 100%;
+        box-sizing: border-box;
+        /* Starts on the song's left edge. The 44px buttons' own whitespace
+           is the gap below the title row; the negative margin tucks their
+           tap area into the empty space under the title (the tabs sit at
+           the right, clear of it). */
+        padding: 0 10px 0 var(--song-gutter);
+        margin-top: -6px;
+    }
+
+    body[data-mode="perform"] .display-tempo:not(:empty) {
+        display: inline;
+        font-size: 13px;
+    }
+
+    .display-row,
+    body[data-mode="edit"] .edit-actions {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        flex-wrap: nowrap;
+        margin-left: -8px; /* first label's text lines up with the edge */
+    }
+
+    /* Edit actions and the setlist controls wrap below the Display controls
+       on phones — no divider. */
+    .edit-actions .display-divider,
+    .setlist-nav .display-divider {
+        display: none;
+    }
+
+    .display-divider {
+        height: 16px;
+        margin: 0 4px;
+    }
+
+    .display-row .action-button,
+    .edit-actions .action-button,
+    .setlist-nav .action-button {
+        min-height: 44px;
+        min-width: 40px;
+        padding: 0 8px;
+        border: none;
+        border-radius: 6px;
+        background: none;
+        color: #71717A;
+        font-size: 13px;
+    }
+
+    .display-row .action-button:active,
+    .edit-actions .action-button:active,
+    .setlist-nav .action-button:active {
+        background: #F4F4F5;
+        color: #18181B;
+    }
+
+    .display-row .action-button[data-action^="transpose"] {
+        font-size: 16px;
+    }
+
+    /* Perform without the version picker: ♭ starts the row, its glyph on
+       the lyrics' left edge like "Original" was. */
+    body[data-mode="perform"] .version-selector:not([data-many]) ~ [data-action="transposeDown"] {
+        justify-content: flex-start;
+    }
+
+    .key-menu-grid {
+        grid-template-columns: repeat(4, 56px);
+    }
+
+    .key-menu-item {
+        height: 44px;
+    }
+
+    .key-menu-major {
+        font-size: 16px;
+    }
+
+    .setlist-nav-name {
+        min-height: 44px;
+        max-width: 150px;
+    }
+
+    .version-picker-label {
+        max-width: 9em;
+    }
+
+    .popover-item {
+        min-height: 44px;
+        padding: 0 14px;
+        font-size: 15px;
+    }
+
+    /* Edit / Practice panels share the song's left and right edges. */
+    .mode-panel {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0 12px 4px var(--song-gutter);
+    }
+
+    .mode-panel .tag-editor {
+        padding: 8px 0 0;
+    }
+
+    /* =========================================================================
+       LIBRARY PAGES (home, setlist) — mobile sizes. 16px edges
+       (iOS's standard margin); rows and chips are finger-sized.
+       ========================================================================= */
+    .site-header {
+        padding: 12px 16px 0;
+    }
+
+    .home-page .main-content,
+    .setlist-page .main-content {
+        padding: 0 16px 48px;
+    }
+
+    .setlists-section {
+        padding-top: 20px;
+        margin-bottom: 12px;
+    }
+
+    .song-list-container {
+        padding-top: 24px;
+    }
+
+    .song-list-title {
+        font-size: 26px;
+    }
+
+    .setlists-section-title {
+        font-size: 20px;
+    }
+
+    .song-list-header,
+    .setlists-section-header {
+        min-height: 44px;
+        margin-bottom: 8px;
+    }
+
+    .song-list-container > .song-list-header {
+        margin-bottom: 14px;
+    }
+
+    .new-song-button,
+    .setlists-new-btn,
+    .setlist-delete-btn {
+        min-height: 44px;
+    }
+
+    .song-search {
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .recent-section {
+        margin-bottom: 14px;
+    }
+
+    .recent-label {
+        margin-bottom: 8px;
+    }
+
+    /* One row each, swiped sideways to the screen edges. */
+    .recent-row,
+    .tag-filter-bar {
+        margin: 0 -16px;
+        padding: 0 16px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .recent-row::-webkit-scrollbar,
+    .tag-filter-bar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .recent-chip,
+    .tag-filter-btn {
+        min-height: 40px;
+    }
+
+    .tag-filter-bar {
+        margin-bottom: 8px;
+    }
+
+    .artist-filter-chip {
+        min-height: 40px;
+    }
+
+    .artist-filter-name {
+        padding: 0 2px 0 12px;
+    }
+
+    .artist-filter-clear {
+        width: 36px;
+        padding: 0;
+    }
+
+    .tag-filter-divider {
+        margin: 0 4px;
+    }
+
+    .song-main {
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 0;
+    }
+
+    .song-artist {
+        font-size: 13px;
+    }
+
+    /* Artist picker: a bottom sheet. */
+    .artist-picker {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: flex-end;
+        background: rgba(24, 24, 27, 0.45);
+    }
+
+    .artist-picker-panel {
+        width: 100%;
+        height: min(600px, calc(100% - 48px - env(safe-area-inset-top)));
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .artist-picker-head {
+        padding: 12px 12px 0 20px;
+    }
+
+    .artist-picker-close {
+        width: 44px;
+        height: 44px;
+    }
+
+    .artist-search {
+        width: calc(100% - 40px);
+        height: 44px;
+        margin: 8px 20px;
+        font-size: 16px;
+    }
+
+    .artist-list {
+        flex: 1;
+        padding: 0 20px calc(16px + env(safe-area-inset-bottom));
+    }
+
+    .artist-option {
+        min-height: 52px;
+        padding: 0;
+        border-bottom: 1px solid #F4F4F5;
+        font-size: 16px;
+    }
+
+    .artist-option:last-child {
+        border-bottom: 0;
+    }
+
+    .artist-option-count {
+        font-size: 13px;
+    }
+
+    .song-item,
+    .setlist-row {
+        --row-inset: 8px;
+        min-height: 56px;
+        margin: 0 -8px;
+        padding: 0 8px;
+        font-size: 16px;
+    }
+
+    .pagination {
+        padding-top: 20px;
+    }
+
+    .page-btn {
+        min-width: 44px;
+        height: 44px;
+    }
+
+    .setlists-empty {
+        padding: 12px 0;
+    }
+
+    /* Setlist page */
+    .setlist-editor-container {
+        padding-top: 20px;
+    }
+
+    .setlist-editor-container .song-list-header {
+        flex-wrap: wrap;
+        row-gap: 12px;
+    }
+
+    .setlist-editor-container .song-list-title {
+        font-size: 26px;
+    }
+
+    .setlist-song-remove {
+        width: 44px;
+        height: 44px;
+        margin-right: -8px;
+    }
+
+    .setlist-danger-zone {
+        margin-top: 32px;
+        padding-top: 12px;
+    }
+
+    /* The add-song picker is a bottom sheet. */
+    .song-picker-overlay {
+        align-items: flex-end;
+    }
+
+    .song-picker-modal {
+        max-height: 85vh;
+        border-radius: 16px 16px 0 0;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .song-picker-header {
+        padding: 12px 8px 12px 16px;
+    }
+
+    .song-picker-search {
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .song-picker-close {
+        width: 44px;
+        height: 44px;
+    }
+
+    .song-picker-list {
+        padding: 4px 8px 8px;
+    }
+
+    .song-picker-item {
+        min-height: 52px;
+        padding: 0 8px;
+        font-size: 16px;
+    }
+
+    /* Search or add a song: the field sits above Setlists; results and the
+       preview sheet are finger-sized. */
+    .home-search {
+        margin-top: 16px;
+    }
+
+    .search-label {
+        margin: 4px 0 4px;
+    }
+
+    body.home-searching .no-songs-container {
+        padding: 8px 0 12px;
+    }
+
+    .add-song {
+        margin-top: 12px;
+        padding-top: 8px;
+    }
+
+    .add-song .search-label {
+        margin-top: 8px;
+    }
+
+    .add-song-row,
+    .hac-result {
+        --row-inset: 8px;
+        min-height: 60px;
+        margin: 0 -8px;
+        padding: 8px;
+        font-size: 16px;
+    }
+
+    .hac-status {
+        min-height: 56px;
+        font-size: 15px;
+    }
+
+    .add-song-overlay {
+        align-items: flex-end;
+    }
+
+    .add-song-sheet {
+        height: calc(100% - 48px - env(safe-area-inset-top));
+        border-radius: 16px 16px 0 0;
+    }
+
+    .add-song-head {
+        padding: 16px 12px 0 20px;
+    }
+
+    .add-song-title {
+        font-size: 24px;
+    }
+
+    .add-song-close {
+        width: 44px;
+        height: 44px;
+    }
+
+    .add-song-versions {
+        margin: 16px 20px 12px;
+    }
+
+    .add-song-prev,
+    .add-song-next {
+        width: 44px;
+        height: 36px;
+    }
+
+    .add-song-preview {
+        padding: 16px 20px 24px;
+        font-size: 16px;
+    }
+
+    .add-song-head + .add-song-versions[hidden] + .add-song-preview {
+        margin-top: 16px;
+    }
+
+    .add-song-foot {
+        padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    }
+
+    .add-song-confirm {
+        height: 50px;
+    }
+}
+
+/* =============================================================================
+   DESKTOP SURFACE — applied at viewports >= 768 px wide.
+   Self-contained in the same sense as the mobile block above. Edit
+   without worrying about cascade leakage across viewports.
+   ============================================================================= */
+@media (min-width: 768px) {
+/* =============================================================================
+   BASE
+   ============================================================================= */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #18181B;
+    background-color: #FFFFFF;
+    margin: 0;
+    /* viewport-fit=cover: keep pages clear of the notch / status bar
+       (all 0 outside the Home Screen web app and notch landscape). */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Logo — in the site header (home, setlist) and the song title row. */
+.site-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #18181B;
+    text-decoration: none;
+}
+
+.site-logo:hover {
+    color: #18181B;
+    text-decoration: none;
+    opacity: 0.85;
+}
+
+.site-logo .logo-mark {
+    display: block;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+}
+
+/* Only the home page has the name; song and setlist show the symbol. */
+.site-logo .logo-name {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* =============================================================================
+   LAYOUT
+   ============================================================================= */
+.main-content {
+    padding: 0 40px 80px 40px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.content {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 12px 0 20px 0; /* no side padding — aligns with the 40px from .main-content */
+    font-family: var(--song-font);
+}
+
+/* =============================================================================
+   SONG HEADER
+   ============================================================================= */
+.song-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 0;
+    padding: 10px 0 4px 0;
+    border-bottom: 1px solid #E4E4E7;
+}
+
+/* Ghost action buttons */
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    background-color: transparent;
+    color: #3F3F46;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #E4E4E7;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    line-height: 1;
+}
+
+.action-button:hover {
+    background-color: #F4F4F5;
+    border-color: #D4D4D8;
+    color: #18181B;
+}
+
+.action-button:active {
+    background-color: #E4E4E7;
+}
+
+/* Song title */
+.song-title {
+    font-size: 1.55em;
+    font-weight: 700;
+    color: #18181B;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+    cursor: pointer;
+}
+
+.song-title:hover {
+    color: #3F3F46;
+}
+
+.title-inline-input {
+    font-size: inherit;
+    font-weight: inherit;
+    font-family: inherit;
+    letter-spacing: inherit;
+    color: #18181B;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid #2563EB;
+    outline: none;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    line-height: inherit;
+}
+
+/* =============================================================================
+   SONG VIEW — 2-COLUMN LAYOUT
+   ============================================================================= */
+#songView {
+    font-size: 18px; /* fixed; ~60 characters per column */
+    line-height: 1.6;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    column-count: 2;
+    column-gap: 48px;
+    column-fill: balance;
+    column-rule: 1px solid #E4E4E7;
+}
+
+/* Paragraph block */
+.song-paragraph {
+    display: block;
+    /* The same box in every mode, so lyrics never shift between Edit /
+       Practice / Perform; they start on the title's left edge. */
+    padding: 0.1em 0 0.15em 0;
+    box-sizing: border-box;
+    margin-bottom: 0;
+    background-color: transparent;
+    border-radius: 0;
+    border: none;
+    margin-top: 0;
+    white-space: pre-line;
+    width: 100%;
+    break-inside: avoid;
+    cursor: default;
+    transition: background-color 0.15s;
+    position: relative;
+}
+
+/* Spacer between paragraphs: sections sit clearly further apart than
+   lines (~1.5 lines between a section's last line and the next header). */
+.empty-line {
+    height: 0.9em;
+    break-inside: avoid;
+    display: block;
+}
+
+/* Continuation paragraphs (no section header): a clear break from the
+   paragraph above without looking like a new section. */
+.song-paragraph:not(:has(> .section-header)) {
+    margin-top: 0.95em;
+}
+
+/* One block per lyric line. A long line's wrapped part hangs 1.2em in,
+   so it can't be mistaken for the next line. */
+.song-line {
+    padding-left: 1.2em;
+    text-indent: -1.2em;
+}
+
+/* Inline-block chips would inherit the negative indent. */
+.song-line > * {
+    text-indent: 0;
+}
+
+.song-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+/* =============================================================================
+   INTERACTIVE WORD / SPACE ELEMENTS
+   ============================================================================= */
+.clickable-word, .clickable-space, .chord.clickable {
+    pointer-events: none;
+    cursor: default;
+    transition: background-color 0.1s;
+}
+
+/* Not .chord: its own side padding is what keeps it off the next word. */
+.clickable-word, .clickable-space {
+    padding: 0.1em 0;
+    border-radius: 2px;
+}
+
+body.mode-edit .clickable-word, body.mode-edit .clickable-space, body.mode-edit .chord.clickable {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.clickable-word:hover, .clickable-space:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.word, .space {
+    cursor: default;
+    padding: 0.1em 0;
+}
+
+/* Inline paragraph editor */
+.inline-para-editor {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    padding: 0.55em 0.7em;
+    border: 2px solid #3F3F46;
+    border-radius: 2px;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    background: #FAFAFA;
+    color: #18181B;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+/* =============================================================================
+   CHORDS
+   ============================================================================= */
+.chord {
+    display: inline-block;
+    background-color: #F4F4F5;
+    color: #C81E1E; /* 5.2:1 on the chip; #DC2626 was 4.4 */
+    cursor: default;
+    white-space: nowrap;
+    font-size: 1.12em;
+    font-weight: 500;
+    padding: 0 0.25em;
+    border-radius: 4px;
+    line-height: 1.3;
+    vertical-align: baseline;
+    font-family: inherit;
+    margin: 0 0.2em 0 0; /* never flush against the next word */
+}
+
+.chord.clickable {
+    cursor: pointer;
+    transition: background-color 0.12s;
+}
+
+.chord.clickable:hover {
+    background-color: #E4E4E7;
+    text-decoration: none;
+}
+
+/* Render accidentals (♯ / ♭) in a tighter font than the rest of the chord.
+   The rest inherits Lexend from .content; Lexend's ♯/♭ glyphs have wide
+   sidebearings that make chords like "C#m7b5" look spread out. The
+   system-ui fallback (what the chord-picker dialog uses) is enough on its
+   own — no negative margin needed. */
+.chord .chord-accidental {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter',
+                 Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+                 'Helvetica Neue', sans-serif;
+}
+
+/* =============================================================================
+   SECTION HEADERS
+   Plain text label — no background, no pill. Resembles a handwritten section mark.
+   ============================================================================= */
+.section-header {
+    display: block;
+    overflow: visible;
+    background: none;
+    color: #18181B;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0;
+    border-radius: 0;
+    margin: 0 0 0.2em 0;
+    line-height: 1.4;
+    cursor: default;
+}
+
+.section-header-name {
+    display: inline;
+    color: inherit;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-style: normal;
+}
+
+.section-header-playstyle {
+    display: inline;
+    float: right;
+    font-weight: 500;
+    color: #3F3F46;
+    font-style: italic;
+    text-transform: none;
+    font-size: 0.88em;
+    margin-left: 6px;
+    letter-spacing: 0;
+}
+
+/* Section palette: sticky above the lyrics, scrolling sideways if the
+   row doesn't fit (narrow tablets). */
+body[data-mode="edit"] .section-palette {
+    position: sticky;
+    top: 0;
+    z-index: 40; /* under the ⋮ / version popovers (50) */
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 6px 0;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #F4F4F5;
+}
+
+.section-palette::-webkit-scrollbar {
+    display: none;
+}
+
+.section-chips {
+    gap: 6px;
+}
+
+.section-chip {
+    min-height: 32px;
+    padding: 0 11px;
+}
+
+.section-chip::before {
+    top: 3px;
+    bottom: 3px;
+}
+
+.section-chip.picked::after {
+    bottom: 6px;
+}
+
+/* =============================================================================
+   CHORD DIALOG — a centred dialog (look in the shared preamble)
+   ============================================================================= */
+.chord-dialog {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-width: calc(100vw - 64px);
+    max-height: calc(100vh - 64px);
+    padding-bottom: 20px;
+    border-radius: 14px;
+}
+
+.chord-dialog-header {
+    padding: 16px 16px 4px 24px;
+}
+
+.chord-dialog-close {
+    width: 36px;
+    height: 36px;
+}
+
+.chord-dialog-close:hover {
+    background: #E4E4E7;
+}
+
+.chord-replace-all {
+    min-height: 40px;
+    margin: 0 24px;
+    font-size: 14px;
+}
+
+.chord-section-label {
+    margin: 16px 24px 8px;
+}
+
+.chord-dialog-section {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 24px;
+}
+
+.chord-option {
+    min-height: 40px;
+    font-size: 17px;
+}
+
+.chord-option:hover {
+    background: #E4E4E7;
+}
+
+.chord-dialog-custom {
+    gap: 8px;
+    margin-top: 20px;
+    padding: 16px 24px 0;
+}
+
+.chord-custom-input,
+.chord-custom-add {
+    height: 36px;
+    font-size: 14px;
+}
+
+.chord-custom-add:hover:not(:disabled) {
+    background: #3F3F46;
+}
+
+.chord-delete-button {
+    margin-left: auto;
+    min-height: 32px;
+    font-size: 14px;
+}
+
+.chord-delete-button:hover {
+    color: #B91C1C;
+}
+
+/* =============================================================================
+   PLAY INSTRUCTIONS (inline performance directions — [[drum fills]], etc.)
+   =============================================================================
+   Intentionally un-chord-like. No border, no background pill — the
+   differentiation is carried by italic + bold + muted gray. Same font size
+   as the surrounding lyrics so it reads as part of the line, not a footnote.
+   Lives in the song-content flow so it inherits Lexend from .content. */
+.play-instruction {
+    /* Bright blue — third lane in the palette alongside black (lyrics/
+       structure) and red (chords). Uses --accent (#2563EB) which was
+       defined in the tokens but wasn't being applied anywhere (buttons
+       moved to slate). Italic + bold keeps it from reading as a
+       hyperlink despite the bright blue. */
+    color: #2563EB;
+    font-style: italic;
+    font-weight: 700;
+    margin: 0 2px;
+    white-space: nowrap;
+    cursor: default;
+}
+
+/* Play-instructions are display-only (no click handler in the JS). To
+   add/edit/remove one, the user double-clicks the paragraph and types
+   `[[text]]` directly into the inline raw-text editor. */
+
+/* =============================================================================
+   TAG EDITOR (song page)
+   ============================================================================= */
+.tag-editor {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 0 4px;
+}
+
+.tag-editor-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #71717A;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px 3px 10px;
+    background-color: #18181B;
+    color: #FFFFFF;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tag-chip-remove {
+    background: none;
+    border: none;
+    color: #A1A1AA;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px 2px;
+    display: flex;
+    align-items: center;
+}
+
+.tag-chip-remove:hover {
+    color: #FFFFFF;
+}
+
+.add-tag-select {
+    font-size: 12px;
+    font-family: inherit;
+    padding: 3px 8px;
+    border: 1px solid #E4E4E7;
+    border-radius: 12px;
+    background: #FFFFFF;
+    color: #52525B;
+    cursor: pointer;
+    outline: none;
+}
+
+/* =============================================================================
+   METRONOME (inside the Practice panel)
+   ============================================================================= */
+
+/* The panel shows a switch + a "72 BPM · 4/4" chip that opens the sheet. */
+.metronome-chip {
+    min-height: 32px;
+    padding: 0 10px;
+}
+
+.metronome-chip::before {
+    top: 0;
+    bottom: 0;
+}
+
+/* The speed slider is a fixed width on the settings line (a width, not a
+   flex-basis: the row is sized from its content). */
+.speed-slider {
+    flex: none;
+    width: 140px;
+    min-width: 0;
+    margin-left: 4px;
+}
+
+.vp-row-head {
+    display: contents;
+}
+
+.vp-row-head .vp-reset {
+    order: 2;
+}
+
+/* Metronome sheet: a dialog in the middle of the window. */
+.metro-overlay {
+    align-items: center;
+    justify-content: center;
+}
+
+.metro-sheet {
+    width: 440px;
+    max-height: calc(100% - 48px);
+    border-radius: 14px;
+    padding: 18px 24px 24px;
+    gap: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.metro-grabber {
+    display: none;
+}
+
+.add-tag-select:focus {
+    border-color: #A1A1AA;
+}
+
+/* =============================================================================
+   YOUTUBE PLAYER WIDGET (song view)
+   ============================================================================= */
+.video-player-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+    position: relative;
+}
+
+.yt-search-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.vp-upload-bar,
+.yt-search-bar,
+.yt-results {
+    max-width: 560px;
+}
+
+.yt-search-input {
+    flex: 1;
+    width: auto;
+    height: 36px;
+    font-size: 14px;
+}
+
+.vp-setup {
+    gap: 10px;
+    padding-bottom: 12px;
+}
+
+.vp-file-pick,
+.vp-btn.yt-search-btn,
+.vp-btn.vp-upload-btn {
+    min-height: 36px;
+    font-size: 14px;
+}
+
+/* Segments: 32px, the raised segment 2px in. */
+.vp-seg > button,
+.vp-seg > .ps-display {
+    min-height: 32px;
+    min-width: 44px;
+    padding: 0 12px;
+}
+
+.vp-seg::before {
+    top: 0;
+    bottom: 0;
+}
+
+.vp-seg > button::before {
+    top: 2px;
+    bottom: 2px;
+}
+
+.vp-stepper > button,
+.vp-stepper > .ps-display {
+    min-width: 34px;
+    padding: 0;
+}
+
+.yt-results {
+    max-height: 320px;
+}
+
+.yt-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    cursor: pointer;
+}
+
+.yt-result-item:hover .yt-result-title {
+    text-decoration: underline;
+}
+
+.yt-result-thumb {
+    width: 72px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background: #E4E4E7;
+}
+
+.yt-result-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.yt-result-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #18181B;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.yt-result-channel {
+    font-size: 12px;
+    color: #71717A;
+}
+
+.yt-no-results {
+    padding: 8px 12px;
+    color: #71717A;
+    font-size: 12.5px;
+}
+
+.yt-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Stems · Speed · Pitch on one line, Metronome after them (wrapping on
+   narrow windows); each label sits right before its control. */
+.vp-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 32px;
+    row-gap: 6px;
+}
+
+.vp-row-pair {
+    display: contents;
+}
+
+.vp-btn:hover:not(:disabled),
+.vp-link-btn:hover {
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+.yt-scrubber {
+    min-width: 120px;
+    height: 32px;
+}
+
+/* =============================================================================
+   SONG PAGE HEADER — top bar, mode switcher, Display bar, mode panels
+   ============================================================================= */
+.song-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+    /* Reset the 0 12px padding the narrower-viewport base sets — on
+       desktop .song-header already supplies 40px side padding, so an
+       extra 12px inside would push the logo right. */
+    padding: 0;
+}
+
+.song-top-bar .site-logo {
+    flex-shrink: 0;
+}
+
+.song-top-bar .song-title {
+    /* Leaves room for the Perform-mode tempo summary to its right. */
+    flex: 0 1 auto;
+    min-width: 0;
+    font-size: 1.6em;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* "90 BPM · 4/4" beside the title (Perform only). */
+.song-top-bar .title-summary {
+    align-items: center;
+    padding-left: 14px;
+    margin-left: 2px;
+    border-left: 1px solid #E4E4E7;
+    font-size: 13px;
+    line-height: 1.2;
+}
+
+.mode-switch {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    margin-right: -10px; /* align the last label's text with the edge */
+}
+
+.mode-switch-btn {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 13px;
+}
+
+.mode-switch-btn[aria-selected="true"]::after {
+    bottom: 3px;
+}
+
+body[data-mode="perform"] .song-top-bar .title-summary:not(:empty) {
+    display: inline-flex;
+}
+
+.display-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding-top: 10px;
+}
+
+.display-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+    margin-left: -8px; /* first label's text lines up with the title */
+}
+
+.display-divider {
+    height: 14px;
+    margin: 0 8px;
+}
+
+.display-row .action-button,
+.edit-actions .action-button,
+.setlist-nav .action-button {
+    min-height: 32px;
+    min-width: 32px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: #71717A;
+    font-size: 13px;
+}
+
+.display-row .action-button:hover,
+.edit-actions .action-button:hover,
+.setlist-nav .action-button:hover {
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+.display-row .action-button[data-action^="transpose"] {
+    font-size: 15px;
+}
+
+/* Perform without the version picker: ♭ starts the row, its glyph on the
+   title's left edge like "Original" was. */
+body[data-mode="perform"] .version-selector:not([data-many]) ~ [data-action="transposeDown"] {
+    justify-content: flex-start;
+}
+
+.key-menu-grid {
+    grid-template-columns: repeat(4, 48px);
+}
+
+.key-menu-item {
+    height: 38px;
+}
+
+.key-menu-major {
+    font-size: 14px;
+}
+
+.setlist-nav-name {
+    min-height: 32px;
+    max-width: 220px;
+}
+
+.setlist-nav-name:hover {
+    color: #18181B;
+}
+
+.popover-item {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+.mode-panel {
+    padding-top: 10px;
+}
+
+.mode-panel .tag-editor {
+    padding-top: 8px;
+}
+
+.vp-btn {
+    min-height: 32px;
+    min-width: 32px;
+    font-size: 13px;
+}
+
+.vp-row {
+    gap: 0;
+}
+
+.vp-row-label {
+    margin-right: 12px;
+}
+
+/* Source line: the label is a fixed column, so the title lines up. */
+.vp-source-row .vp-row-label {
+    width: 72px;
+    margin-right: 0;
+}
+
+.vp-playback-row {
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.vp-playback-row .yt-play-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+}
+
+.vp-playback-row .yt-seek-btn {
+    min-width: 34px;
+    min-height: 34px;
+}
+
+.vp-reset {
+    margin-left: 4px;
+}
+
+.metronome-toggle {
+    min-width: 44px;
+    margin-left: -4px;
+}
+
+.vp-source-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-height: 32px;
+}
+
+.vp-source-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 13px;
+}
+
+.vp-source-row .vp-link-btn {
+    min-height: 32px;
+}
+
+/* =============================================================================
+   LIBRARY PAGES (home, setlist) — desktop sizes. One centred
+   720px column (~70 characters of UI text); the logo sits on its edge.
+   ============================================================================= */
+.home-page .site-header,
+.setlist-page .site-header {
+    padding: 16px max(40px, calc((100% - 720px) / 2)) 0;
+}
+
+.home-page .main-content,
+.setlist-page .main-content {
+    max-width: 800px;
+    padding: 0 40px 96px;
+}
+
+.setlists-section {
+    padding-top: 36px;
+    margin-bottom: 16px;
+}
+
+.song-list-container {
+    padding-top: 32px;
+}
+
+.song-list-title {
+    font-size: 30px;
+}
+
+.setlists-section-title {
+    font-size: 22px;
+}
+
+.song-list-header,
+.setlists-section-header {
+    min-height: 36px;
+    margin-bottom: 10px;
+}
+
+.song-list-container > .song-list-header {
+    margin-bottom: 18px;
+}
+
+.new-song-button,
+.setlists-new-btn,
+.setlist-delete-btn {
+    min-height: 36px;
+}
+
+.new-song-button:hover {
+    background: #3F3F46;
+    border-color: #3F3F46;
+    color: #FFFFFF;
+}
+
+.setlists-new-btn:hover,
+.setlist-page .new-song-button.setlist-edit-toggle:hover,
+.setlist-page .new-song-button.setlist-add-song-btn:hover {
+    border-color: #D4D4D8;
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+.setlist-page .new-song-button.setlist-edit-toggle[aria-pressed="true"]:hover {
+    border-color: #3F3F46;
+    background: #3F3F46;
+    color: #FFFFFF;
+}
+
+.setlist-delete-btn:hover {
+    background: #FEF2F2;
+}
+
+.song-search {
+    height: 40px;
+    font-size: 14px;
+}
+
+.song-search:hover:not(:focus) {
+    background-color: #E4E4E7;
+}
+
+.recent-section {
+    margin-bottom: 16px;
+}
+
+.recent-label {
+    margin-bottom: 8px;
+}
+
+.recent-row,
+.tag-filter-bar {
+    flex-wrap: wrap;
+}
+
+.recent-chip,
+.tag-filter-btn {
+    min-height: 32px;
+}
+
+.recent-chip:hover {
+    background: #E4E4E7;
+}
+
+.tag-filter-btn:not(.active):hover {
+    border-color: #D4D4D8;
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+.tag-filter-bar {
+    margin-bottom: 12px;
+}
+
+.artist-filter-chip {
+    min-height: 32px;
+}
+
+.artist-filter-name {
+    padding: 0 2px 0 12px;
+}
+
+.artist-filter-clear {
+    width: 30px;
+    padding: 0;
+}
+
+.artist-filter-clear:hover {
+    color: #FFFFFF;
+}
+
+.tag-filter-divider {
+    margin: 0 4px;
+}
+
+.song-main {
+    align-items: baseline;
+    gap: 10px;
+}
+
+.song-main .song-name {
+    flex: 0 1 auto;
+    max-width: 65%;
+}
+
+.song-main .song-name:only-child {
+    max-width: none;
+}
+
+.song-artist {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 14px;
+}
+
+/* Artist picker: a popover under the Artist chip. */
+.library-filters {
+    position: relative;
+}
+
+.artist-picker {
+    position: absolute;
+    z-index: 20;
+    top: 40px;
+    left: 0;
+}
+
+.artist-picker-panel {
+    width: 320px;
+    max-height: 420px;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px #E4E4E7, 0 16px 40px rgba(24, 24, 27, 0.14);
+}
+
+.artist-picker-head {
+    display: none;
+}
+
+.artist-search {
+    width: calc(100% - 16px);
+    height: 36px;
+    margin: 8px 8px 4px;
+    font-size: 14px;
+}
+
+.artist-list {
+    padding: 0 4px 6px;
+}
+
+.artist-option {
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.artist-option:hover {
+    background: #F4F4F5;
+}
+
+.artist-option-count {
+    font-size: 12px;
+}
+
+.song-item,
+.setlist-row {
+    --row-inset: 12px;
+    min-height: 48px;
+    margin: 0 -12px;
+    padding: 0 12px;
+    font-size: 15px;
+}
+
+.song-item:hover,
+.setlist-row:hover {
+    background-color: #FAFAFA;
+}
+
+.pagination {
+    padding-top: 24px;
+}
+
+.page-btn {
+    min-width: 36px;
+    height: 36px;
+}
+
+.page-btn:not(.active):not(:disabled):hover {
+    background: #F4F4F5;
+    color: #18181B;
+}
+
+.setlists-empty {
+    padding: 12px 0;
+}
+
+/* Setlist page */
+.setlist-editor-container {
+    padding-top: 36px;
+}
+
+.setlist-editor-container .song-list-title {
+    font-size: 30px;
+}
+
+.setlist-song-remove {
+    width: 32px;
+    height: 32px;
+}
+
+.setlist-song-remove:hover {
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+.setlist-danger-zone {
+    margin-top: 40px;
+    padding-top: 16px;
+}
+
+.song-picker-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.song-picker-modal {
+    max-width: 520px;
+    max-height: 72vh;
+    border-radius: 14px;
+}
+
+.song-picker-header {
+    padding: 12px 8px 12px 12px;
+}
+
+.song-picker-search {
+    height: 40px;
+    font-size: 14px;
+}
+
+.song-picker-close {
+    width: 36px;
+    height: 36px;
+}
+
+.song-picker-close:hover {
+    background: #F4F4F5;
+}
+
+.song-picker-list {
+    padding: 6px;
+}
+
+.song-picker-item {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 15px;
+}
+
+.song-picker-item:hover {
+    background: #FAFAFA;
+}
+
+/* Search or add a song. */
+.home-search {
+    margin-top: 24px;
+}
+
+.search-label {
+    margin: 4px 0 6px;
+}
+
+body.home-searching .no-songs-container {
+    padding: 8px 0 16px;
+}
+
+.add-song {
+    margin-top: 16px;
+    padding-top: 8px;
+}
+
+.add-song .search-label {
+    margin-top: 12px;
+}
+
+.add-song-row,
+.hac-result {
+    --row-inset: 12px;
+    min-height: 56px;
+    margin: 0 -12px;
+    padding: 8px 12px;
+    font-size: 15px;
+}
+
+.add-song-row:hover:not(:disabled),
+.hac-result:hover {
+    background: #FAFAFA;
+}
+
+.hac-status {
+    min-height: 52px;
+    font-size: 14px;
+}
+
+.add-song-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+}
+
+.add-song-sheet {
+    max-width: 600px;
+    max-height: min(820px, 100%);
+    border-radius: 14px;
+}
+
+.add-song-head {
+    padding: 20px 16px 0 24px;
+}
+
+.add-song-title {
+    font-size: 24px;
+}
+
+.add-song-close {
+    width: 36px;
+    height: 36px;
+}
+
+.add-song-close:hover {
+    background: #E4E4E7;
+}
+
+.add-song-versions {
+    margin: 16px 24px 12px;
+}
+
+.add-song-prev,
+.add-song-next {
+    width: 40px;
+    height: 32px;
+}
+
+.add-song-prev:hover:not(:disabled),
+.add-song-next:hover:not(:disabled) {
+    background: #FAFAFA;
+}
+
+/* Fits a short song; a long one scrolls inside the dialog. */
+.add-song-preview {
+    flex: 0 1 auto;
+    padding: 20px 24px 28px;
+    font-size: 17px;
+}
+
+.add-song-head + .add-song-versions[hidden] + .add-song-preview {
+    margin-top: 16px;
+}
+
+.add-song-foot {
+    padding: 14px 24px 20px;
+}
+
+.add-song-confirm {
+    height: 44px;
+}
+
+.add-song-confirm:hover:not(:disabled) {
+    background: #3F3F46;
+}
+}
+
+/* =============================================================================
+   WIDE TOUCH SCREENS — foldables, tablets in landscape
+   A refinement of the desktop surface for touch:
+     - every mode: a one-row header (CE · title · Display controls … tabs)
+       and finger-sized (44px) controls, as on phones;
+     - Perform only: the lyrics become screen-high columns that overflow to
+       the right; src/features/songPager flips them a screen at a time.
+   Keep the query in sync with PAGED_QUERY there.
+   ============================================================================= */
+@media (min-width: 768px) and (orientation: landscape) and (pointer: coarse) {
+
+/* ---- Layout, every mode ---------------------------------------------------- */
+/* The song page runs under a side status bar (foldable web app); only the
+   header row keeps clear of its clock / Wi-Fi. (body[data-mode] = the song
+   page; the library pages keep the desktop layout.) */
+body[data-mode] {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body[data-mode] .main-content {
+    max-width: none;
+    padding: 0 24px;
+}
+
+/* One header row: logo · title · tempo · Display controls … mode tabs.
+   Mode panels (Edit tags / raw text, Practice) wrap below it. */
+.song-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 14px;
+    /* Keep the 44px targets off the screen's top edge: iOS holds back
+       touches there for its own swipe-down gesture, so tabs flush with the
+       edge barely respond. The 44px rows leave enough air below. */
+    padding: 12px env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+.song-top-bar {
+    display: contents;
+}
+
+/* 44px tall but only as wide as the symbol, so the title sits next to it. */
+.site-logo {
+    min-height: 44px;
+}
+
+.song-top-bar .song-title {
+    font-size: 1.3em;
+}
+
+.song-top-bar .title-summary {
+    order: 1;
+}
+
+/* The Display bar's parts join the header row: the controls stay whole
+   (a long title gives way with an ellipsis), Edit's Raw text / ⋮ right
+   after ♭ ♯ as on the other viewports. */
+.display-bar {
+    display: contents;
+}
+
+.display-row,
+.setlist-nav:not([hidden]) {
+    order: 2;
+    flex: 0 0 auto;
+}
+
+body[data-mode="edit"] .edit-actions {
+    order: 2;
+    flex: 0 0 auto;
+    margin-left: -14px; /* the header row's gap is the divider's job */
+}
+
+.mode-switch {
+    order: 3;
+}
+
+.mode-panel {
+    order: 5;
+    flex-basis: 100%;
+}
+
+/* ---- Touch targets, every mode -------------------------------------------
+   The desktop block's 32–36px targets are too small to hit reliably. */
+.mode-switch {
+    gap: 8px;
+    margin-right: -12px; /* last label's text stays on the edge */
+}
+
+.mode-switch-btn {
+    min-height: 44px;
+    padding: 0 12px;
+}
+
+.mode-switch-btn[aria-selected="true"]::after {
+    bottom: 7px;
+}
+
+.display-row .action-button,
+.edit-actions .action-button,
+.setlist-nav .action-button {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.setlist-nav-name {
+    min-height: 44px;
+}
+
+.key-menu-grid {
+    grid-template-columns: repeat(4, 56px);
+}
+
+.key-menu-item {
+    height: 44px;
+}
+
+.key-menu-major {
+    font-size: 15px;
+}
+
+.popover-item {
+    min-height: 44px;
+    padding: 0 14px;
+}
+
+/* Edit: section chips, in a bar fixed to the bottom of the screen (thumb
+   reach) instead of desktop's sticky one above the lyrics. */
+body[data-mode="edit"] .section-palette {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 2px 12px env(safe-area-inset-bottom);
+    border-bottom: 0;
+    border-top: 1px solid #E4E4E7;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+    justify-content: safe center;
+}
+
+body[data-mode="edit"] .content {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+.section-chip {
+    min-height: 44px;
+}
+
+.section-chip::before {
+    top: 7px;
+    bottom: 7px;
+}
+
+.section-chip.picked::after {
+    bottom: 10px;
+}
+
+.chord-option {
+    min-height: 48px;
+}
+
+.chord-replace-all,
+.chord-delete-button {
+    min-height: 44px;
+}
+
+.chord-dialog-close {
+    width: 44px;
+    height: 44px;
+}
+
+.chord-custom-input,
+.chord-custom-add {
+    height: 44px;
+    font-size: 16px;
+}
+
+/* Practice: the desktop layout with the phone's 44px targets. */
+.vp-btn,
+.vp-source-row,
+.vp-source-row .vp-link-btn,
+.vp-upload-bar {
+    min-height: 44px;
+}
+
+.vp-btn {
+    min-width: 44px;
+}
+
+.vp-seg > button,
+.vp-seg > .ps-display {
+    min-height: 44px;
+    min-width: 52px;
+}
+
+.vp-seg::before {
+    top: 4px;
+    bottom: 4px;
+}
+
+.vp-seg > button::before {
+    top: 6px;
+    bottom: 6px;
+}
+
+.vp-stepper > button,
+.vp-stepper > .ps-display {
+    min-width: 44px;
+}
+
+.metronome-chip {
+    min-height: 44px;
+    padding: 0 12px;
+}
+
+.metronome-chip::before {
+    top: 4px;
+    bottom: 4px;
+}
+
+.speed-slider {
+    width: 180px;
+    margin-left: 0;
+}
+
+/* Stems · Speed · Pitch · Metronome stay on one line: at 44px the
+   controls plus inline labels need ~1060px, more than a foldable's
+   ~1000px, so each label sits above its control instead. */
+.vp-settings {
+    column-gap: 24px;
+    row-gap: 4px;
+    align-items: flex-start;
+}
+
+.vp-settings .vp-row {
+    position: relative;
+    padding-top: 16px;
+}
+
+/* Out of the flow, so a label never widens its group. Reset sits right
+   after its label, on the label's line (link-style: a small target, with
+   a taller invisible hit area). */
+.vp-settings .vp-row > .vp-row-label,
+.vp-settings .vp-row-head {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    line-height: 16px;
+}
+
+.vp-settings .vp-row-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.vp-settings .vp-row-head .vp-row-label {
+    margin: 0;
+}
+
+.vp-settings .vp-row-head .vp-reset {
+    min-height: 16px;
+    min-width: 0;
+    margin: 0;
+    padding: 0 4px;
+    line-height: 16px;
+}
+
+.vp-settings .vp-row-head .vp-reset::after {
+    content: "";
+    position: absolute;
+    inset: -14px -8px;
+}
+
+.vp-playback-row .yt-play-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+}
+
+.vp-playback-row .yt-seek-btn {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.yt-scrubber {
+    height: 44px;
+}
+
+.yt-scrubber::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+}
+
+.yt-scrubber::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+}
+
+.metronome-toggle {
+    min-width: 52px;
+    margin-left: -8px;
+}
+
+.yt-search-input,
+.yt-search-btn,
+.vp-file-pick,
+.vp-upload-btn {
+    height: 44px;
+    font-size: 15px;
+}
+
+.vp-setup {
+    padding-bottom: 14px;
+}
+
+/* Library pages: the desktop layout with finger-sized targets. */
+.new-song-button,
+.setlists-new-btn,
+.setlist-delete-btn,
+.page-btn,
+.song-search,
+.song-picker-search {
+    min-height: 44px;
+}
+
+.page-btn {
+    min-width: 44px;
+}
+
+.recent-chip,
+.tag-filter-btn,
+.artist-filter-chip {
+    min-height: 40px;
+}
+
+.artist-filter-clear {
+    width: 40px;
+}
+
+.artist-picker {
+    top: 48px;
+}
+
+.artist-search {
+    height: 44px;
+    font-size: 16px;
+}
+
+.artist-option {
+    min-height: 44px;
+    font-size: 16px;
+}
+
+.song-item,
+.setlist-row {
+    min-height: 52px;
+    font-size: 17px;
+}
+
+.song-artist {
+    font-size: 15px;
+}
+
+.setlist-song-remove,
+.song-picker-close,
+.add-song-close {
+    width: 44px;
+    height: 44px;
+}
+
+.add-song-prev,
+.add-song-next {
+    width: 44px;
+    height: 36px;
+}
+
+.add-song-confirm {
+    height: 50px;
+}
+
+.add-song-row,
+.hac-result {
+    min-height: 60px;
+}
+
+.song-picker-item {
+    min-height: 48px;
+}
+
+/* ---- Paged Perform ------------------------------------------------------- */
+body[data-mode="perform"] {
+    height: 100dvh;
+    overflow: hidden;
+}
+
+body[data-mode="perform"] .main-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The page: fills what the header leaves; overflow columns are clipped
+   and brought into view by songPager's translateX. */
+/* Edit and Practice share Perform's column gap, so switching modes doesn't
+   move the lyrics sideways. */
+body[data-mode="edit"] .content,
+body[data-mode="practice"] .content {
+    padding-top: 4px;
+}
+
+body[data-mode="edit"] #songView,
+body[data-mode="practice"] #songView {
+    column-gap: 40px;
+}
+
+/* Every mode uses paged Perform's line pitch, so lyrics don't move when
+   switching modes. */
+#songView {
+    line-height: 1.4;
+}
+
+body[data-mode="perform"] .content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 4px 0 20px 0; /* bottom leaves room for the page number */
+}
+
+body[data-mode="perform"] #songView {
+    flex: 1;
+    min-height: 0;
+    column-count: 2;
+    column-gap: 40px;
+    column-fill: auto;
+}
+
+body[data-mode="perform"] .song-paragraph {
+    /* Long sections may continue in the next column rather than leave a
+       gap at the bottom of this one, but never strand a header or a
+       single line. */
+    break-inside: auto;
+    orphans: 2;
+    widows: 2;
+}
+
+body[data-mode="perform"] .song-paragraph > .section-header {
+    break-after: avoid;
+}
+
+/* A wrapped line stays on one page. */
+body[data-mode="perform"] .song-line {
+    break-inside: avoid;
+}
+
+/* Chips no longer set the line pitch. */
+#songView .chord {
+    line-height: 1.1;
+}
+
+#songView .song-paragraph:not(:has(> .section-header)) {
+    margin-top: 0.6em;
+}
+
+.page-indicator {
+    position: fixed;
+    right: 24px;
+    bottom: max(4px, env(safe-area-inset-bottom));
+    font-size: 12px;
+    line-height: 1;
+    color: #71717A;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+.page-indicator[hidden] {
+    display: none;
+}
+
+/* Half / Full page toggle in the Display row (paged Perform only). */
+.page-turn {
+    display: contents;
+}
+
+.page-turn[hidden] {
+    display: none;
+}
+
+/* Rides in with the column a half turn brings, then fades: the cue that the
+   right column moved left and a new one took its place. */
+.page-turn-cover {
+    position: fixed;
+    z-index: 5;
+    background: #FFFFFF;
+    pointer-events: none;
+}
+
+}

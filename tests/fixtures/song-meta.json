@@ -1,0 +1,68 @@
+{
+  "simple-ballad": {
+    "title": "Simple Ballad",
+    "tags": [
+      "Ballad"
+    ],
+    "metronome": {
+      "bpm": 90,
+      "timeSignature": "4/4"
+    },
+    "artists": [
+      "Hoàng Dũng"
+    ]
+  },
+  "edge-cases": {
+    "tags": []
+  },
+  "repeat-brackets": {
+    "title": "Repeat Test Song",
+    "tags": [
+      "Gig-ready"
+    ],
+    "metronome": {
+      "bpm": 120,
+      "timeSignature": "4/4"
+    }
+  },
+  "extended-chords": {
+    "title": "Extended Chord Workout",
+    "tags": [
+      "Verified",
+      "Sôi động"
+    ],
+    "metronome": {
+      "bpm": 100,
+      "timeSignature": "4/4"
+    },
+    "artists": [
+      "Jaykii",
+      "Sara Lưu"
+    ]
+  },
+  "ConMuaNho": {
+    "title": "Cơn Mưa Nhỏ",
+    "tags": [
+      "Verified"
+    ],
+    "metronome": {
+      "bpm": 72,
+      "timeSignature": "4/4"
+    },
+    "youtubeVideoId": "dQw4w9WgXcQ",
+    "youtubeVideoTitle": "Cơn Mưa Nhỏ — Official",
+    "audioSource": "youtube",
+    "artists": [
+      "Hoàng Dũng"
+    ]
+  },
+  "long-song": {
+    "title": "Long Song",
+    "tags": [
+      "Sôi động"
+    ],
+    "artists": [
+      "Sara Lưu"
+    ]
+  }
+}

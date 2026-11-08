@@ -1,0 +1,36 @@
+(Intro)
+[C] [G] [Am] [F]
+
+(Verse 1)
+[C]This is a long [G]song with many [Am]sections so we [F]can test
+[C]How the view [G]handles scrolling [Am]paragraphs and [F]spacing
+
+(Pre-Chorus)
+[Dm]Building up to [G]the chorus with a [C]pre
+[Dm]Nothing fancy [G]just a lead-in [C]here
+
+(Chorus)
+[F]Everybody [C]sing the
+[G]Chorus over [Am]and again
+[F]Second line of [C]the same
+[G]Feeling comes [Am]around
+
+(Verse 2)
+[C]Second verse is [G]similar to the [Am]first one in [F]shape
+[C]Different lyrics [G]but the same [Am]underlying [F]chords
+
+(Chorus)
+[F]Everybody [C]sing the
+[G]Chorus over [Am]and again
+[F]Second line of [C]the same
+[G]Feeling comes [Am]around
+
+(Bridge)
+[Em]A different [Am]feel here
+[Dm]Minor key [G7]tension resolved
+[Em]Coming back [Am]to the tonic
+[Dm]Fading into [G7]the end
+
+(Outro)
+[C] [G] [Am] [F]
+[C] [G] [Am] [F]

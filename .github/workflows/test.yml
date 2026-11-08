@@ -1,0 +1,75 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  go:
+    name: Go (build + test -race)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Build
+        run: go build ./...
+      - name: Test
+        run: go test -race ./...
+
+  e2e:
+    name: Playwright E2E + visual
+    runs-on: ubuntu-latest
+    needs: go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install npm deps
+        run: npm ci
+      - name: TypeScript typecheck (src/ + tests/)
+        run: npm run typecheck
+      - name: Vitest unit tests
+        run: npm run test:unit
+      - name: Vite build (writes static/dist/ + manifest.json)
+        run: npm run build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E (functional)
+        run: npm run test:e2e
+      - name: Run visual regression
+        # NOTE: visual baselines are captured on macOS locally. CI runs on
+        # Linux. Subpixel rendering differences may produce diffs that are
+        # acceptable. To regenerate baselines for Linux: SSH into a Linux
+        # box (or use this CI job in --update-snapshots mode), then commit
+        # the resulting tests/visual/*-snapshots/.
+        run: npm run test:visual
+        continue-on-error: true # see NOTE above; flip to required once
+                                # Linux baselines are committed.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+      - name: Upload test results (screenshots, videos, traces)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7

@@ -1,0 +1,15 @@
+(Intro)
+[C] [G] [Am] [F]
+
+(Verse 1)
+[C]This verse repeats [G]twice
+[Am]With volta one and [F]two
+
+(Verse 1[rep-start])
+[C]First ending here we [G]go
+
+(Verse 2[rep-end])
+[C]Second ending goes this [G]way
+
+(Chorus)
+[F]One and [C]done

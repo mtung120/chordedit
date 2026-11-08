@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Song: {{.Title}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Home Screen web app: opens full-screen, without Safari's bars. -->
+    <link rel="manifest" href="{{asset "static/manifest.webmanifest"}}">
+    <link rel="icon" href="{{asset "static/images/favicon.svg"}}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{asset "static/images/icon-180.png"}}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ChordEdit">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="{{asset "static/css/styles.css"}}">
+    <script>
+        const songName = "{{.SongName}}";
+        window.songName = songName;
+        window.songVersion = {{.Version}};
+        window.songKeyOffset = {{.KeyOffset}};
+    </script>
+</head>
+<body data-mode="perform">
+    <div class="main-content">
+        <!-- Setlist context bar (Prev / Next). Hidden until activated by
+             src/features/setlistContext when ?setlist=… is in the URL. -->
+
+        <!-- Raw song source; songView renders it into .content. -->
+        <div id="raw-content">{{.Content}}</div>
+
+        <!-- Song header: title bar, mode switcher, Display bar, mode panels
+             (src/features/songMode drives body[data-mode]). -->
+        <div class="song-header">
+            <div class="song-top-bar">
+                <a href="/music/songs" class="site-logo" aria-label="ChordEdit"><svg class="logo-mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="22.4" fill="#18181B"/><rect x="22" y="24" width="42" height="30" rx="9" fill="#EF4444"/><rect x="22" y="64" width="56" height="11" rx="5.5" fill="#FAFAFA"/></svg></a>
+                <!-- Capped at 25 characters; data-title keeps the full one for Rename. -->
+                <h1 class="song-title" id="song-title-heading" data-title="{{.Title}}" title="{{.Title}}">{{shortTitle .Title}}</h1>
+                <!-- "90 BPM" (Perform only; desktop shows it here). -->
+                <span class="title-summary tempo-summary" aria-label="Tempo"></span>
+                <div class="mode-switch" role="tablist" aria-label="Mode">
+                    <button type="button" class="mode-switch-btn" role="tab" data-mode="edit" aria-selected="false">Edit</button>
+                    <button type="button" class="mode-switch-btn" role="tab" data-mode="practice" aria-selected="false">Practice</button>
+                    <button type="button" class="mode-switch-btn" role="tab" data-mode="perform" aria-selected="true">Perform</button>
+                </div>
+            </div>
+
+            <div class="display-bar">
+                <div class="display-row">
+                    <div class="version-selector"></div>
+                    <span class="display-divider" aria-hidden="true"></span>
+                    <button type="button" class="action-button" data-action="transposeDown" aria-label="Transpose down">♭</button>
+                    <!-- The song's key; the menu moves it (src/features/keySelector). -->
+                    <div class="key-picker">
+                        <button type="button" class="action-button key-picker-btn" aria-haspopup="menu" aria-label="Key"><span class="key-picker-label">Key</span><span class="key-picker-name"></span> ▾</button>
+                        <div class="popover-menu key-menu" role="menu" aria-label="Key">
+                            <div class="key-menu-title" aria-hidden="true">Key</div>
+                            <!-- Edit only: what a pick does, and the switch to
+                                 relabelling a misdetected key. -->
+                            <div class="key-menu-hint key-menu-edit">Moves every chord</div>
+                            <div class="key-menu-grid"></div>
+                            <div class="key-menu-footer key-menu-edit">
+                                <button type="button" class="action-button key-menu-set">Wrong key? Set it</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="action-button" data-action="transposeUp" aria-label="Transpose up">♯</button>
+                    <!-- Paged Perform only: half (one column) or full page
+                         turns; src/features/songPager shows and fills it. -->
+                    <span class="page-turn" hidden>
+                        <span class="display-divider" aria-hidden="true"></span>
+                        <button type="button" class="action-button page-turn-btn"></button>
+                    </span>
+                </div>
+                <!-- Setlist name · position ‹ › (only when opened from a
+                     setlist; src/features/setlistContext fills it). -->
+                <div class="setlist-nav" hidden></div>
+                <!-- Tempo after the controls (Perform only; phones show it here). -->
+                <span class="display-tempo tempo-summary" aria-label="Tempo"></span>
+                <!-- Edit-mode ⋮ menu, inline after the Display controls. -->
+                <div class="edit-actions">
+                    <span class="display-divider" aria-hidden="true"></span>
+                    <div class="edit-menu">
+                        <button type="button" class="action-button edit-menu-btn" aria-haspopup="menu" aria-label="Song actions"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5.5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="18.5" r="2"/></svg></button>
+                        <div class="popover-menu edit-menu-dropdown" role="menu">
+                            <button type="button" class="popover-item" role="menuitem" data-action="editRawText">Raw text</button>
+                            <button type="button" class="popover-item" role="menuitem" data-action="toggleTags">Tags…</button>
+                            <button type="button" class="popover-item" role="menuitem" data-action="startInlineTitleRename">Rename song</button>
+                            <button type="button" class="popover-item popover-item--danger" role="menuitem" data-action="deleteSong">Delete song</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-panel" data-mode-panel="edit">
+                <div class="tag-editor" hidden></div>
+                <div class="raw-text-editor" hidden>
+                    <textarea class="raw-text-area"></textarea>
+                    <div class="raw-text-actions">
+                        <button type="button" class="action-button action-button--primary" data-action="rawTextSave">Save</button>
+                        <button type="button" class="action-button" data-action="rawTextCancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-panel" data-mode-panel="practice">
+                <div class="video-player-container"></div>
+            </div>
+        </div>
+
+        <!-- Edit only: section types to drag onto paragraphs
+             (src/features/songView/sectionPalette.ts fills it). -->
+        <div class="section-palette" role="toolbar" aria-label="Section types"></div>
+
+        <!-- Content will be formatted and displayed here -->
+        <div class="content"></div>
+    </div>
+
+    <!-- All page JS ships in the Vite "song" bundle (src/entries/song.ts). -->
+    {{vite "song"}}
+</body>
+</html>

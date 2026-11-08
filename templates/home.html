@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Song Library</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Home Screen web app: opens full-screen, without Safari's bars. -->
+    <link rel="manifest" href="{{asset "static/manifest.webmanifest"}}">
+    <link rel="icon" href="{{asset "static/images/favicon.svg"}}" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="{{asset "static/images/icon-180.png"}}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ChordEdit">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="stylesheet" href="{{asset "static/css/styles.css"}}">
+</head>
+<body class="home-page">
+    <div class="site-header">
+        <!-- Symbol + name on wide screens, symbol alone on phones. -->
+        <a href="/music/songs" class="site-logo" aria-label="ChordEdit"><svg class="logo-mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="22.4" fill="#18181B"/><rect x="22" y="24" width="42" height="30" rx="9" fill="#EF4444"/><rect x="22" y="64" width="56" height="11" rx="5.5" fill="#FAFAFA"/></svg><span class="logo-name">ChordEdit</span></a>
+    </div>
+    <div class="main-content">
+        <!-- One field finds songs in the library and on hopamchuan.com
+             (src/features/home/addSong.ts adds them). -->
+        <div class="home-search">
+            <input type="text" class="song-search" placeholder="Search or add a song" autocomplete="off"
+                   enterkeyhint="search" aria-label="Search or add a song">
+            <button type="button" class="song-search-clear" aria-label="Clear search" hidden>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+            </button>
+        </div>
+
+        <div class="setlists-section"></div>
+
+        <div class="song-list-container">
+            <div class="song-list-header">
+                <div class="song-list-title-group">
+                    <h2 class="song-list-title">Song Library</h2>
+                    <span class="song-count">{{len .Songs}} songs</span>
+                </div>
+            </div>
+
+            {{if .RecentSongs}}
+            <div class="recent-section">
+                <div class="recent-label">Recently played</div>
+                <div class="recent-row"></div>
+            </div>
+            {{end}}
+
+            <div class="library-filters">
+                <div class="tag-filter-bar"></div>
+
+                <!-- Artist filter: bottom sheet on phones, popover under the
+                     Artist chip elsewhere (src/features/home/artistPicker.ts). -->
+                <div class="artist-picker" hidden>
+                    <div class="artist-picker-panel" role="dialog" aria-label="Filter by artist">
+                        <div class="artist-picker-head">
+                            <h2 class="artist-picker-title">Artist</h2>
+                            <button type="button" class="artist-picker-close" aria-label="Close">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                            </button>
+                        </div>
+                        <input type="search" class="artist-search" placeholder="Search artists" autocomplete="off"
+                               aria-label="Search artists">
+                        <div class="artist-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-label">In your library</div>
+            <div class="song-list"></div>
+            <div class="pagination"></div>
+
+            <div class="add-song" hidden>
+                <div class="hac-section"></div>
+                <button type="button" class="add-song-row blank-song-btn">
+                    <span class="add-song-row-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+                    <span class="add-song-row-text"><span class="add-song-row-title">Blank song</span><span class="add-song-row-sub">Start empty, rename it later</span></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview of a hopamchuan.com song (bottom sheet on phones). -->
+        <div class="add-song-overlay" hidden>
+            <div class="add-song-sheet" role="dialog" aria-modal="true" aria-labelledby="addSongTitle">
+                <div class="add-song-head">
+                    <div class="add-song-heading">
+                        <h2 id="addSongTitle" class="add-song-title"></h2>
+                        <div class="add-song-artist"></div>
+                    </div>
+                    <button type="button" class="add-song-close" aria-label="Close">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                </div>
+                <div class="add-song-versions" hidden>
+                    <button type="button" class="add-song-prev" aria-label="Previous version">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                    </button>
+                    <div class="add-song-version-meta">
+                        <span class="add-song-version-count"></span>
+                        <span class="add-song-version-label"></span>
+                    </div>
+                    <button type="button" class="add-song-next" aria-label="Next version">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
+                <div class="add-song-preview"></div>
+                <div class="add-song-foot">
+                    <p class="add-song-note" hidden></p>
+                    <p class="add-song-status" aria-live="polite"></p>
+                    <button type="button" class="add-song-confirm" disabled>Add song</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    window.songData = {{.SongDataJS}};
+    window.recentSongs = {{.RecentDataJS}};
+    window.tagConfig = {{.TagConfigJS}};
+    window.setlistsData = {{.SetlistsJS}};
+    </script>
+    {{vite "home"}}
+</body>
+</html>

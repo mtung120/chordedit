@@ -1,0 +1,146 @@
+{
+  "HacImportRequest": {
+    "slug": "string",
+    "songId": "string"
+  },
+  "HacImportResponse": {
+    "versions": "[]HacImportVersion"
+  },
+  "HacImportVersion": {
+    "content": "string",
+    "isDefault": "bool",
+    "label": "string",
+    "score": "int",
+    "url": "string"
+  },
+  "HacSearchResult": {
+    "artists": "[]string",
+    "id": "string",
+    "slug": "string",
+    "title": "string"
+  },
+  "MetronomeSettings": {
+    "beatAnchor": "*float64|omitempty",
+    "bpm": "int",
+    "offsetMs": "int|omitempty",
+    "timeSignature": "string"
+  },
+  "ProxyRequest": {
+    "url": "string"
+  },
+  "ProxyResponse": {
+    "content": "string"
+  },
+  "SaveSetlistRequest": {
+    "name": "string",
+    "oldName": "string|omitempty",
+    "songs": "[]string"
+  },
+  "Setlist": {
+    "name": "string",
+    "songs": "[]string"
+  },
+  "SongInfo": {
+    "artists": "[]string",
+    "autoTags": "[]string",
+    "name": "string",
+    "tags": "[]string",
+    "title": "string"
+  },
+  "SongMeta": {
+    "artists": "[]string|omitempty",
+    "audioSource": "string|omitempty",
+    "guitarTab": "string|omitempty",
+    "keyOffset": "int|omitempty",
+    "metronome": "*MetronomeSettings|omitempty",
+    "tags": "[]string|omitempty",
+    "title": "string|omitempty",
+    "uploadedAudioId": "string|omitempty",
+    "uploadedAudioName": "string|omitempty",
+    "versionLabels": "map[string]string|omitempty",
+    "youtubeVideoId": "string|omitempty",
+    "youtubeVideoTitle": "string|omitempty"
+  },
+  "SongMetaResponse": {
+    "audioSource": "string",
+    "fullMp3Audio": "string",
+    "guitarTab": "string",
+    "instrumentAudio": "string",
+    "metronome": "*MetronomeSettings|omitempty",
+    "tags": "[]string",
+    "title": "string|omitempty",
+    "uploadedAudioName": "string",
+    "versionLabels": "map[string]string",
+    "vocalAudio": "string",
+    "youtubeVideoId": "string",
+    "youtubeVideoTitle": "string"
+  },
+  "SongVersionInfo": {
+    "label": "string",
+    "version": "int"
+  },
+  "TagConfig": {
+    "auto": "[]string",
+    "groups": "[][]string",
+    "implies": "map[string][]string"
+  },
+  "YouTubeSearchResult": {
+    "channel": "string",
+    "thumbnail": "string",
+    "title": "string",
+    "videoId": "string"
+  },
+  "anonymous{artists,content,songName,title}": {
+    "artists": "[]string|omitempty",
+    "content": "string",
+    "songName": "string",
+    "title": "string"
+  },
+  "anonymous{beatAnchor,bpm,offsetMs,songName,timeSignature}": {
+    "beatAnchor": "*float64|omitempty",
+    "bpm": "int",
+    "offsetMs": "int|omitempty",
+    "songName": "string",
+    "timeSignature": "string"
+  },
+  "anonymous{content,fromVersion,label,songName}": {
+    "content": "*string|omitempty",
+    "fromVersion": "int",
+    "label": "string",
+    "songName": "string"
+  },
+  "anonymous{content,songName,version}": {
+    "content": "string",
+    "songName": "string",
+    "version": "int"
+  },
+  "anonymous{keyOffset,songName}": {
+    "keyOffset": "int",
+    "songName": "string"
+  },
+  "anonymous{label,songName,version}": {
+    "label": "string",
+    "songName": "string",
+    "version": "int"
+  },
+  "anonymous{newTitle,songName}": {
+    "newTitle": "string",
+    "songName": "string"
+  },
+  "anonymous{songName,tags}": {
+    "songName": "string",
+    "tags": "[]string"
+  },
+  "anonymous{songName,title,videoId}": {
+    "songName": "string",
+    "title": "string",
+    "videoId": "string"
+  },
+  "separateStemsRequest": {
+    "songName": "string"
+  },
+  "separateStemsResponse": {
+    "error": "string|omitempty",
+    "status": "string"
+  }
+}

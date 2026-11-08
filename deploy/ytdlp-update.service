@@ -1,0 +1,8 @@
+[Unit]
+Description=Upgrade yt-dlp + yt-dlp-ejs in the ChordEdit venv
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/chordedit/venv/bin/pip install --quiet --upgrade yt-dlp yt-dlp-ejs

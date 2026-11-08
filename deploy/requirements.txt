@@ -1,0 +1,14 @@
+# Python deps for ChordEdit's child processes (yt-dlp downloads, Demucs stem
+# separation). One venv for both: /opt/chordedit/venv on the server, .venv
+# locally. Point CHORDEDIT_PYTHON at its python.
+#
+# CPU-only torch wheels (~200 MB instead of ~2 GB of CUDA); macOS wheels
+# resolve from PyPI as usual. Demucs/torch are pinned to the versions
+# verified on the server (Python 3.14); yt-dlp floats and is upgraded daily
+# by ytdlp-update.timer.
+--extra-index-url https://download.pytorch.org/whl/cpu
+yt-dlp
+yt-dlp-ejs
+demucs==4.0.1
+torch==2.14.1
+torchaudio==2.11.0

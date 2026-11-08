@@ -1,0 +1,26 @@
+[Unit]
+Description=ChordEdit (Go web app)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=chordedit
+Group=chordedit
+WorkingDirectory=/opt/chordedit/current
+ExecStart=/opt/chordedit/current/chordedit
+EnvironmentFile=/etc/chordedit/env
+Restart=always
+RestartSec=3
+
+# Hardening: the app only needs to write its data dir. yt-dlp and Demucs run
+# as child processes and write into SONGS_DIR/audio as well.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/data/chordedit
+# Demucs peaks around 2 GB; reclaim memory before it can squeeze the host.
+MemoryHigh=6G
+
+[Install]
+WantedBy=multi-user.target

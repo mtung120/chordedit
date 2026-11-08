@@ -1,0 +1,23 @@
+# /etc/caddy/sites/chordedit.caddy — ChordEdit's site. setup-server.sh
+# replaces CHORDEDIT_DOMAIN with your domain and installs this file; the
+# main Caddyfile imports /etc/caddy/sites/*.caddy.
+# Caddy obtains + renews the cert and redirects :80 → :443 on its own.
+CHORDEDIT_DOMAIN {
+	encode gzip
+
+	# Stem/audio uploads are up to 20 MB in Go; leave headroom.
+	request_body {
+		max_size 25MB
+	}
+
+	# Every endpoint is public (no login, no CSRF). To require a password,
+	# uncomment and put a hash from `caddy hash-password` here:
+	# basic_auth {
+	# 	musician $2a$14$replace-with-the-hash
+	# }
+
+	# Exact "/" only — everything else goes to the app as-is.
+	redir / /music/ 302
+
+	reverse_proxy 127.0.0.1:8080
+}

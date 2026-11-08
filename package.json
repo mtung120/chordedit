@@ -1,0 +1,31 @@
+{
+  "name": "chordedit-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ChordEdit frontend (Vite + TypeScript) and test suite.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:e2e": "playwright test --config=tests/playwright.config.ts --project=functional",
+    "test:visual": "playwright test --config=tests/playwright.config.ts --project=visual-mobile --project=visual-tablet --project=visual-laptop --project=visual-desktop",
+    "test:visual:update": "playwright test --config=tests/playwright.config.ts --update-snapshots --project=visual-mobile --project=visual-tablet --project=visual-laptop --project=visual-desktop",
+    "test:all": "playwright test --config=tests/playwright.config.ts",
+    "test:debug": "playwright test --config=tests/playwright.config.ts --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "@types/node": "22.5.5",
+    "jsdom": "25.0.1",
+    "typescript": "5.6.2",
+    "vite": "5.4.21",
+    "vitest": "2.1.9"
+  },
+  "dependencies": {
+    "tone": "^15.1.22"
+  }
+}

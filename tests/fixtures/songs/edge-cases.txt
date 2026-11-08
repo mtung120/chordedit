@@ -1,0 +1,11 @@
+(Intro)
+[C]
+
+(Verse 1)
+[C]Chord at line start works
+Line without any chords
+Line with [G]chord in [Am]middle and another [F]
+[C][G]Two chords on [Am][F]same word boundary
+
+(Bridge)
+Trailing chord at end [C]

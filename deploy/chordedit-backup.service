@@ -1,0 +1,9 @@
+[Unit]
+Description=Nightly snapshot of ChordEdit data (audio excluded)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'set -euo pipefail; \
+  d=/var/backups/chordedit; mkdir -p "$d"; \
+  tar czf "$d/songs-$(date +%%Y%%m%%d-%%H%%M%%S).tgz" -C /var/data/chordedit --exclude=songs/audio songs; \
+  ls -1t "$d"/songs-*.tgz | tail -n +15 | xargs -r rm -f'

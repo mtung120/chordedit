@@ -1,0 +1,12 @@
+(Intro)
+[C] [G] [Am] [F]
+
+[C]This paragraph has [G]no header at all
+[Am]Just lyrics and [F]chords
+
+(Verse 1)
+[C]Hello [G]world this is a [Am]test song
+[C]With mixed [G]headers and [Am]bare paragraphs
+
+[F]Another bare [C]paragraph here
+[G]No section [Am]label above
