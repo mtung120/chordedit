@@ -124,7 +124,7 @@ mode and is created on the first save.
   first home chord's key and the last chord's (a final V7
   points to its key); when they differ, the one more chords belong to wins.
   Charts that start on IV and end after a key change can come out wrong
-  (5 of the 60 songs in `detectKey.fixtures.json`). ♭ / ♯ move one
+  (about 1 song in 12 on a real library). ♭ / ♯ move one
   semitone; the menu (12 keys in a 4 × 3 grid, each over its relative
   minor) moves in one tap. Notes are spelled from the new key: sharp keys
   (G D A E B F♯) with sharps, the rest with flats, F♯ in C; chord types

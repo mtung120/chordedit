@@ -9,7 +9,6 @@ import {
   spellNote,
   transposeChord,
 } from './chords.js';
-import songs from './detectKey.fixtures.json';
 
 const key = (name: string): number => KEY_NAMES.indexOf(name as (typeof KEY_NAMES)[number]);
 
@@ -107,13 +106,11 @@ describe('detectKey', () => {
     expect(detectKey(['N.C.'])).toBeNull();
   });
 
-  // 60 songs from the library, keys checked by hand. The rule misses a few
-  // (they start on IV and end after a key change); those pin what it says.
-  for (const song of songs as Array<{ title: string; key: string; detected?: string; chords: string[] }>) {
-    it(`${song.title}: ${song.detected ? `${song.detected} (really ${song.key})` : song.key}`, () => {
-      expect(detectKey(song.chords)).toBe(key(song.detected ?? song.key));
-    });
-  }
+  it('lets the key more chords belong to win when the first and last disagree', () => {
+    // In G, then a closing lift to A.
+    const lift = ['G', 'D', 'Em', 'C', 'G', 'D', 'Em', 'C', 'G', 'D', 'C', 'A', 'E', 'F#m', 'A'];
+    expect(detectKey(lift)).toBe(key('G'));
+  });
 });
 
 describe('extractChordRoots', () => {

@@ -50,8 +50,12 @@ Or Go only (serves the last `npm run build` output from `static/dist/`):
 npm run build && go run main.go  # http://localhost:8080/music/
 ```
 
-Local data lives in `./songs/` (gitignored, dev-only), which starts
-empty. To pull songs from a running server:
+Code and content are kept apart: the repo holds no songs. The server
+keeps every song, setlist and setting as files in `SONGS_DIR`
+(`/var/data/chordedit/songs` in production, `./songs/` by default in
+dev, gitignored), so the library survives deploys and is backed up on its
+own. The test suite brings its own made-up songs (`tests/fixtures/`).
+A dev checkout starts with an empty library. To pull songs from a running server:
 `./download-songs.sh ./songs https://<your domain>/music`.
 Optional env vars: `YOUTUBE_API_KEY` (video search), `SONGS_DIR`, `PORT`.
 The server also reads them from a gitignored `.env` in the repo root
@@ -95,7 +99,7 @@ the server. Ops details in `DEPLOYMENT.md`.
 |---|---|---|
 | `go test ./...` | Go unit tests incl. API drift test | — |
 | `npm run typecheck` | strict tsc on `src/` + `tests/` | — |
-| `npm run test:unit` | Vitest (`src/**/*.test.ts`) | 98 |
+| `npm run test:unit` | Vitest (`src/**/*.test.ts`) | 39 |
 | `npm run test:e2e` | Playwright functional (`tests/specs/`) | 186 |
 | `npm run test:visual` | Playwright visual, mobile/tablet/laptop/desktop | 4 × 20 |
 | `npm run test:all` | all Playwright projects | 264 |

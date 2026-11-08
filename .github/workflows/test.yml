@@ -9,7 +9,7 @@ on:
 jobs:
   go:
     name: Go (build + test -race)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright has no browsers for 26.04 yet
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -22,7 +22,7 @@ jobs:
 
   e2e:
     name: Playwright E2E + visual
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright has no browsers for 26.04 yet
     needs: go
     steps:
       - uses: actions/checkout@v4
